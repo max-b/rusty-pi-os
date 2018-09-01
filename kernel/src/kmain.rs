@@ -11,6 +11,7 @@
 
 #[macro_use]
 extern crate core;
+#[macro_use]
 extern crate pi;
 extern crate stack_vec;
 
@@ -23,6 +24,7 @@ use std::fmt::Write;
 use pi::timer::spin_sleep_ms;
 use pi::gpio::Gpio;
 use pi::uart::MiniUart;
+use console::{kprint, kprintln};
 
 
 #[no_mangle]
@@ -38,7 +40,8 @@ pub unsafe extern "C" fn kmain() {
     let mut pin_21_on = false;
     loop {
         let byte = uart.read_byte();
-        uart.write_byte(byte);
+        // uart.write_byte(byte);
+        kprint!("{}", byte);
         if pin_16_on {
             pin_16.clear();
             pin_16_on = false;
@@ -64,6 +67,7 @@ pub unsafe extern "C" fn kmain() {
                 pin_21_on = true
             }
         }
-        uart.write_str("<-");
+        kprintln!("<-");
+        // uart.write_str("<-");
     }
 }
