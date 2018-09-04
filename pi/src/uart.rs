@@ -122,7 +122,7 @@ impl MiniUart {
             let now = timer.read();
             match self.timeout {
                 Some(timeout) => {
-                    if start + (timeout * 1000) > now {
+                    if start + (timeout * 1000) < now {
                         return Err(());
                     }
                 },
@@ -144,7 +144,7 @@ impl MiniUart {
     }
 }
 
-// FIXME: Implement `fmt::Write` for `MiniUart`. A b'\r' byte should be written
+// A b'\r' byte should be written
 // before writing any b'\n' byte.
 impl fmt::Write for MiniUart {
     fn write_str(&mut self, string: &str) -> fmt::Result {

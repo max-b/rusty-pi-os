@@ -11,20 +11,17 @@
 
 #[macro_use]
 extern crate core;
-#[macro_use]
 extern crate pi;
 extern crate stack_vec;
 
 pub mod lang_items;
-pub mod mutex;
-pub mod console;
 pub mod shell;
+pub mod racoon;
 
-use std::fmt::Write;
-use pi::timer::spin_sleep_ms;
 use pi::gpio::Gpio;
 use pi::uart::MiniUart;
-use console::{kprint, kprintln};
+use pi::console::{kprint, kprintln};
+use racoon::RACOON_STRING;
 
 
 #[no_mangle]
@@ -33,14 +30,16 @@ pub unsafe extern "C" fn kmain() {
     let mut pin_20 = Gpio::new(20).into_output();
     let mut pin_21 = Gpio::new(21).into_output();
 
-    let mut uart = MiniUart::new();
+    let uart = MiniUart::new();
 
     let mut pin_16_on = false;
     let mut pin_20_on = false;
     let mut pin_21_on = false;
+
+    kprintln!("{}", RACOON_STRING);
+
     loop {
         let byte = uart.read_byte();
-        // uart.write_byte(byte);
         kprint!("{}", byte);
         if pin_16_on {
             pin_16.clear();
@@ -68,6 +67,5 @@ pub unsafe extern "C" fn kmain() {
             }
         }
         kprintln!("<-");
-        // uart.write_str("<-");
     }
 }

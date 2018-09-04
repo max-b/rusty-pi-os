@@ -1,8 +1,7 @@
 use std::io;
 use std::fmt;
 
-use pi::uart::MiniUart;
-
+use uart::MiniUart;
 use mutex::Mutex;
 
 /// A global singleton allowing read/write access to the console.
@@ -76,6 +75,7 @@ pub fn _print(args: fmt::Arguments) {
 }
 
 /// Like `println!`, but for kernel-space.
+#[macro_export]
 pub macro kprintln {
     () => (kprint!("\n")),
     ($fmt:expr) => (kprint!(concat!($fmt, "\n"))),
@@ -83,6 +83,7 @@ pub macro kprintln {
 }
 
 /// Like `print!`, but for kernel-space.
+#[macro_export]
 pub macro kprint($($arg:tt)*) {
     _print(format_args!($($arg)*))
 }
