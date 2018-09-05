@@ -20,7 +20,7 @@ pub mod racoon;
 
 use pi::gpio::Gpio;
 use pi::uart::MiniUart;
-use pi::console::{kprint, kprintln};
+use pi::console::{CONSOLE, kprint, kprintln};
 use racoon::RACOON_STRING;
 
 
@@ -39,33 +39,41 @@ pub unsafe extern "C" fn kmain() {
     kprintln!("{}", RACOON_STRING);
 
     loop {
-        let byte = uart.read_byte();
-        kprint!("{}", byte);
-        if pin_16_on {
-            pin_16.clear();
-            pin_16_on = false;
-        } else {
-            pin_16.set();
-            pin_16_on = true
-        }
-        if byte == 0x41 {
-            if pin_20_on {
-                pin_20.clear();
-                pin_20_on = false;
-            } else {
-                pin_20.set();
-                pin_20_on = true
-            }
-        }
-        if byte == 0x42 {
-            if pin_21_on {
-                pin_21.clear();
-                pin_21_on = false;
-            } else {
-                pin_21.set();
-                pin_21_on = true
-            }
-        }
+        let mut recv = None;
         kprintln!("<-");
+
+        {
+            let mut console = CONSOLE.lock();
+            recv = Some(console.read_byte());
+        }
+
+        if let Some(byte) = recv {
+            kprint!("{}", byte);
+            if pin_16_on {
+                pin_16.clear();
+                pin_16_on = false;
+            } else {
+                pin_16.set();
+                pin_16_on = true
+            }
+            if byte == 0x41 {
+                if pin_20_on {
+                    pin_20.clear();
+                    pin_20_on = false;
+                } else {
+                    pin_20.set();
+                    pin_20_on = true
+                }
+            }
+            if byte == 0x42 {
+                if pin_21_on {
+                    pin_21.clear();
+                    pin_21_on = false;
+                } else {
+                    pin_21.set();
+                    pin_21_on = true
+                }
+            }
+        }
     }
 }
