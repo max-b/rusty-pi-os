@@ -21,6 +21,8 @@ pub mod racoon;
 use pi::gpio::Gpio;
 use pi::uart::MiniUart;
 use pi::console::{CONSOLE, kprint, kprintln};
+use pi::framebuffer::Framebuffer;
+use pi::propertytag::{PropertyTag, PropertyId};
 use racoon::RACOON_STRING;
 
 
@@ -38,6 +40,10 @@ pub unsafe extern "C" fn kmain() {
 
     kprintln!("{}", RACOON_STRING);
 
+
+    let mut framebuffer = Framebuffer::new();
+
+    let mut channel_counter = 0;
     loop {
         let mut recv = None;
         kprintln!("<-");
@@ -48,7 +54,15 @@ pub unsafe extern "C" fn kmain() {
         }
 
         if let Some(byte) = recv {
-            kprint!("{}", byte);
+            kprintln!("{}", byte);
+
+            let val = ((byte - 0x61) << 3);
+            for i in 0..(framebuffer.buffer.len() / 3) {
+                framebuffer.buffer[i * 3 + channel_counter] = val;
+            }
+            channel_counter = (channel_counter + 1) % 3;
+            kprintln!("{:?}", &framebuffer.buffer[0..32]);
+
             if pin_16_on {
                 pin_16.clear();
                 pin_16_on = false;

@@ -28,7 +28,7 @@ const BINARY_START: *mut u8 = BINARY_START_ADDR as *mut u8;
 const BOOTLOADER_START: *mut u8 = BOOTLOADER_START_ADDR as *mut u8;
 /// Free space between the bootloader and the loaded binary's start address.
 // const MAX_BINARY_SIZE: usize = BOOTLOADER_START_ADDR - BINARY_START_ADDR;
-const MAX_BINARY_SIZE: usize = 8000;
+const MAX_BINARY_SIZE: usize = 0xf0000;
 
 /// Branches to the address `addr` unconditionally.
 fn jump_to(addr: *mut u8) -> ! {
