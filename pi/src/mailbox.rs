@@ -1,9 +1,8 @@
 use volatile::prelude::*;
-use volatile::{Volatile, WriteVolatile, ReadVolatile, Reserved};
+use volatile::{WriteVolatile, ReadVolatile};
 use common::IO_BASE;
 use console::kprintln;
 use timer::spin_sleep_ms;
-use stack_vec::StackVec;
 
 // Many thanks to 
 // https://elinux.org/RPi_Framebuffer
@@ -44,7 +43,7 @@ pub enum Channel {
     LED = 4,
     Buttons = 5,
     TouchScreen = 6,
-    _reserved = 7,
+    _Reserved = 7,
     PropertyTagsARMTOVC = 8,
     PropertyTagsVCTOARM = 9,
 }
