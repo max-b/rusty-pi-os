@@ -38,7 +38,6 @@ pub unsafe extern "C" fn kmain() {
 
     kprintln!("{}", RACOON_STRING);
 
-
     let framebuffer = Framebuffer::new().expect("Error creating new framebuffer");
 
     let mut channel_counter = 0;
@@ -58,7 +57,7 @@ pub unsafe extern "C" fn kmain() {
             framebuffer.buffer[i * 3 + channel_counter].write(val);
         }
         channel_counter = (channel_counter + 1) % 3;
-        kprintln!("{:?}", &framebuffer.buffer[0..32]);
+        kprintln!("{:?}", &framebuffer.buffer[0..3]);
 
         if pin_16_on {
             pin_16.clear();
