@@ -8,16 +8,26 @@
 #![feature(ptr_internals)]
 #![feature(panic_implementation)]
 #![feature(nll)]
+#![feature(repr_align)]
+#![feature(attr_literals)]
+#![feature(exclusive_range_pattern)]
+#![feature(alloc, allocator_api, global_allocator)]
 
+#[macro_use]
+#[allow(unused_imports)]
+extern crate alloc;
 #[macro_use]
 extern crate core;
 extern crate pi;
 extern crate stack_vec;
+extern crate fat32;
 extern crate volatile;
 
+pub mod allocator;
 pub mod lang_items;
 pub mod shell;
 pub mod racoon;
+pub mod fs;
 
 use volatile::Writeable;
 use pi::gpio::Gpio;
@@ -25,8 +35,18 @@ use pi::console::{CONSOLE, kprintln};
 use pi::framebuffer::Framebuffer;
 use racoon::RACOON_STRING;
 
+#[cfg(not(test))]
+use allocator::Allocator;
+use fs::FileSystem;
+
+#[cfg(not(test))]
+#[global_allocator]
+pub static ALLOCATOR: Allocator = Allocator::uninitialized();
+
+pub static FILE_SYSTEM: FileSystem = FileSystem::uninitialized();
 
 #[no_mangle]
+#[cfg(not(test))]
 pub unsafe extern "C" fn kmain() {
     let mut pin_16 = Gpio::new(16).into_output();
     let mut pin_20 = Gpio::new(20).into_output();

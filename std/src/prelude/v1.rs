@@ -25,10 +25,10 @@
 #[doc(no_inline)] pub use mem::drop;
 
 // Re-exported types and traits
-// #[stable(feature = "rust1", since = "1.0.0")]
-// #[doc(no_inline)] pub use boxed::Box;
-// #[stable(feature = "rust1", since = "1.0.0")]
-// #[doc(no_inline)] pub use borrow::ToOwned;
+#[stable(feature = "rust1", since = "1.0.0")]
+#[doc(no_inline)] pub use boxed::Box;
+#[stable(feature = "rust1", since = "1.0.0")]
+#[doc(no_inline)] pub use borrow::ToOwned;
 #[stable(feature = "rust1", since = "1.0.0")]
 #[doc(no_inline)] pub use clone::Clone;
 #[stable(feature = "rust1", since = "1.0.0")]

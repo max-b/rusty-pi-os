@@ -8,6 +8,7 @@
 #![feature(extern_prelude)]
 #![feature(optin_builtin_traits)]
 #![feature(nll)]
+#![feature(pointer_methods)]
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
@@ -28,3 +29,4 @@ pub mod common;
 
 #[macro_export]
 pub mod console;
+pub mod atags;
