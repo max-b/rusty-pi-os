@@ -29,8 +29,8 @@ pub mod fs;
 
 use volatile::Writeable;
 use pi::gpio::Gpio;
-use pi::console::{CONSOLE, kprintln};
-use pi::framebuffer::Framebuffer;
+use pi::console::{CONSOLE, kprint, kprintln};
+use pi::framebuffer::{Framebuffer, Pixel};
 use racoon::RACOON_STRING;
 
 #[cfg(not(test))]
@@ -57,26 +57,48 @@ pub unsafe extern "C" fn kmain() {
 
     kprintln!("{}", RACOON_STRING);
 
-    let framebuffer = Framebuffer::new().expect("Error creating new framebuffer");
+    let mut framebuffer = Framebuffer::new().expect("Error creating new framebuffer");
 
-    let mut channel_counter = 0;
+    let mut pixel_cursor: Pixel = Default::default();
+
     loop {
 
-        kprintln!("<-");
+        kprint!("<- ");
 
         let byte = {
             let mut console = CONSOLE.lock();
             console.read_byte()
         };
 
-        kprintln!("{}", byte);
+        kprintln!("0x{:x}", byte);
 
-        let val = (byte - 0x61) << 3;
-        for i in 0..(framebuffer.buffer.len() / 3) {
-            framebuffer.buffer[i * 3 + channel_counter].write(val);
+        if byte == 0x61 {
+            pixel_cursor.x = pixel_cursor.x.wrapping_sub(1);
         }
-        channel_counter = (channel_counter + 1) % 3;
-        kprintln!("{:?}", &framebuffer.buffer[0..3]);
+        if byte == 0x64 {
+            pixel_cursor.x = pixel_cursor.x.wrapping_add(1);
+        }
+        if byte == 0x73 {
+            pixel_cursor.y = pixel_cursor.y.wrapping_add(1);
+        }
+        if byte == 0x77 {
+            pixel_cursor.y = pixel_cursor.y.wrapping_sub(1);
+        }
+        if byte == 0x31 {
+            pixel_cursor.color.red = pixel_cursor.color.red.wrapping_add(10);
+        }
+        if byte == 0x32 {
+            pixel_cursor.color.green = pixel_cursor.color.green.wrapping_add(10);
+        }
+        if byte == 0x33 {
+            pixel_cursor.color.blue = pixel_cursor.color.blue.wrapping_add(10);
+        }
+
+        framebuffer.draw_pixel(&pixel_cursor);
+
+        if byte == 0x20 {
+            framebuffer.clear();
+        }
 
         if pin_16_on {
             pin_16.clear();

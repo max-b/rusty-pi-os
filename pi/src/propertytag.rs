@@ -192,13 +192,8 @@ impl PropertyTag {
                     data
                 }
             },
-            _ => { // TODO: Unimplemented!
-                PropertyTag {
-                    id: PropertyId::Unimplemented as u32,
-                    byte_length: 0,
-                    tag_type: 0x00, // Request
-                    data:[0x00; 32]
-                }
+            _ => { // TODO: Remainder of property tags
+                unimplemented!()
             }
         }
     }

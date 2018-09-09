@@ -11,8 +11,24 @@ use stack_vec::StackVec;
 // https://github.com/raspberrypi/firmware/wiki/Mailbox
 // for info on address locations, etc
 
+#[derive(Clone, Debug, Default)]
+pub struct Color {
+    pub red: u8,
+    pub green: u8,
+    pub blue: u8,
+}
+
+#[derive(Clone, Debug, Default)]
+pub struct Pixel {
+    pub color: Color,
+    pub x: usize,
+    pub y: usize,
+}
+
 pub struct Framebuffer {
     pub size: usize,
+    pub width: usize,
+    pub height: usize,
     pub buffer: &'static mut[Volatile<u8>]
 }
 
@@ -44,6 +60,9 @@ impl Framebuffer {
         kprintln!("set_depth_tag data: {:x?}", &set_depth_tag.data[..]);
         kprintln!("allocate_buffer_tag data: {:x?}", &allocate_buffer_tag.data[..]);
 
+        // TODO: Check physical_width_height_tag data
+        let width = physical_width_height_tag.data[0] as usize;
+        let height = physical_width_height_tag.data[1] as usize;
 
         let fb_base_addr = (allocate_buffer_tag.data[0] - 0xc0000000) as *mut Volatile<u8>;
         let size = allocate_buffer_tag.data[1] as usize;
@@ -55,9 +74,23 @@ impl Framebuffer {
 
         Ok(Framebuffer {
             size,
+            width,
+            height,
             buffer,
         })
+    }
 
+    pub fn clear(&mut self) {
+        for i in 0..self.size {
+            self.buffer[i].write(0);
+        }
+    }
+
+    pub fn draw_pixel(&mut self, pixel: &Pixel) {
+        let fb_index = (pixel.y * self.width * 3) + (pixel.x * 3);
+        self.buffer[fb_index].write(pixel.color.blue);
+        self.buffer[fb_index + 1].write(pixel.color.green);
+        self.buffer[fb_index + 2].write(pixel.color.red);
     }
 }
 
