@@ -13,6 +13,7 @@
 #![feature(exclusive_range_pattern)]
 #![feature(alloc, allocator_api, global_allocator)]
 #![feature(alloc_error_handler)]
+#![feature(panic_info_message)]
 
 #[macro_use]
 #[allow(unused_imports)]
