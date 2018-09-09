@@ -9,12 +9,8 @@
 #![feature(optin_builtin_traits)]
 #![feature(nll)]
 #![feature(pointer_methods)]
+#![feature(allocator_api)]
 
-#![cfg_attr(not(feature = "std"), no_std)]
-
-#[cfg(feature = "std")]
-#[macro_use]
-extern crate core;
 extern crate volatile;
 extern crate stack_vec;
 
@@ -26,6 +22,7 @@ pub mod mailbox;
 pub mod propertytag;
 pub mod framebuffer;
 pub mod common;
+pub mod allocator;
 
 #[macro_export]
 pub mod console;

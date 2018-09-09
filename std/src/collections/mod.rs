@@ -417,26 +417,29 @@
 //! [`BinaryHeap`]: ../../std/collections/struct.BinaryHeap.html
 //! [`IntoIterator`]: ../../std/iter/trait.IntoIterator.html
 
+
 #![stable(feature = "rust1", since = "1.0.0")]
 
 #[stable(feature = "rust1", since = "1.0.0")]
-pub use alloc::Bound;
+#[rustc_deprecated(reason = "moved to `std::ops::Bound`", since = "1.26.0")]
+#[doc(hidden)]
+pub use ops::Bound;
 #[stable(feature = "rust1", since = "1.0.0")]
-pub use alloc::{BinaryHeap, BTreeMap, BTreeSet};
+pub use alloc_crate::collections::{BinaryHeap, BTreeMap, BTreeSet};
 #[stable(feature = "rust1", since = "1.0.0")]
-pub use alloc::{LinkedList, VecDeque};
+pub use alloc_crate::collections::{LinkedList, VecDeque};
 #[stable(feature = "rust1", since = "1.0.0")]
-pub use alloc::{binary_heap, btree_map, btree_set};
+pub use alloc_crate::collections::{binary_heap, btree_map, btree_set};
 #[stable(feature = "rust1", since = "1.0.0")]
-pub use alloc::{linked_list, vec_deque};
+pub use alloc_crate::collections::{linked_list, vec_deque};
 
 #[stable(feature = "rust1", since = "1.0.0")]
 pub use self::hash_map::HashMap;
 #[stable(feature = "rust1", since = "1.0.0")]
 pub use self::hash_set::HashSet;
 
-#[stable(feature = "rust1", since = "1.0.0")]
-pub use alloc::range;
+#[unstable(feature = "try_reserve", reason = "new API", issue="48043")]
+pub use alloc_crate::collections::CollectionAllocErr;
 
 mod hash;
 

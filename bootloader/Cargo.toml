@@ -21,8 +21,14 @@ debug = true
 panic = "abort"
 lto = true
 
+[package.metadata.cargo-xbuild]
+memcpy = false
+sysroot_path = "target/sysroot"
+
 [dependencies]
-pi = { path = "../pi", features = ["std"] }
+pi = { path = "../pi" }
 
 # from assignment 1
 xmodem = { path = "../../1-shell/xmodem/" }
+
+std = { path = "../std" }

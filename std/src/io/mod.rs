@@ -272,6 +272,7 @@
 
 use cmp;
 use core::str as core_str;
+use memchr;
 use error as std_error;
 use fmt;
 use result;
@@ -341,7 +342,7 @@ fn append_to_string<F>(buf: &mut String, f: F) -> Result<usize>
     unsafe {
         let mut g = Guard { len: buf.len(), buf: buf.as_mut_vec() };
         let ret = f(g.buf);
-        if str::from_utf8(&g.buf[g.len..]).is_err() {
+        if core_str::from_utf8(&g.buf[g.len..]).is_err() {
             ret.and_then(|_| {
                 Err(Error::new(ErrorKind::InvalidData,
                                "stream did not contain valid UTF-8"))

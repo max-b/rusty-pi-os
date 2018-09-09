@@ -1,4 +1,4 @@
-use core::fmt;
+use std::fmt;
 
 use volatile::prelude::*;
 use volatile::{Volatile, ReadVolatile, Reserved};
@@ -161,7 +161,6 @@ impl fmt::Write for MiniUart {
 }
 
 
-#[cfg(feature = "std")]
 mod uart_io {
     use std::io;
     use super::MiniUart;
@@ -173,7 +172,7 @@ mod uart_io {
     //
     // The `io::Write::write()` method must write all of the requested bytes
     // before returning.
-    impl io::Read for MiniUart {
+    impl std::io::Read for MiniUart {
         fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
             match self.wait_for_byte() {
                 Ok(_) => {},

@@ -8,15 +8,16 @@
 // option. This file may not be copied, modified, or distributed
 // except according to those terms.
 
-use alloc::heap::{Heap, Alloc, Layout};
-
-use cmp;
+use alloc::{Global, Alloc, Layout, LayoutErr, handle_alloc_error};
+use collections::CollectionAllocErr;
 use hash::{BuildHasher, Hash, Hasher};
 use marker;
-use mem::{align_of, size_of, needs_drop};
+use mem::{size_of, needs_drop};
 use mem;
-use ops::{Deref, DerefMut};
-use ptr::{self, Unique, Shared};
+use core::ops::{Deref, DerefMut};
+use ptr::{self, Unique, NonNull};
+use cmp;
+use hint;
 
 use self::BucketState::*;
 
@@ -176,6 +177,32 @@ pub struct GapThenFull<K, V, M> {
     gap: EmptyBucket<K, V, ()>,
     full: FullBucket<K, V, M>,
 }
+
+
+// Returns a Layout which describes the allocation required for a hash table,
+// and the offset of the array of (key, value) pairs in the allocation.
+fn calculate_layout<K, V>(capacity: usize) -> Result<(Layout, usize), LayoutErr> {
+    let hashes = Layout::array::<HashUint>(capacity)?;
+    let pairs = Layout::array::<(K, V)>(capacity)?;
+    hashes.extend(pairs).map(|(layout, _)| {
+        // LLVM seems to have trouble properly const-propagating pairs.align(),
+        // possibly due to the use of NonZeroUsize. This little hack allows it
+        // to generate optimal code.
+        //
+        // See https://github.com/rust-lang/rust/issues/51346 for more details.
+        (
+            layout,
+            hashes.size() + hashes.padding_needed_for(mem::align_of::<(K, V)>()),
+        )
+    })
+}
+
+pub(crate) enum Fallibility {
+    Fallible,
+    Infallible,
+}
+
+use self::Fallibility::*;
 
 /// A hash that is not zero, since we use a hash of zero to represent empty
 /// buckets.
@@ -739,54 +766,47 @@ fn test_offset_calculation() {
 }
 
 impl<K, V> RawTable<K, V> {
+
     /// Does not initialize the buckets. The caller should ensure they,
     /// at the very least, set every hash to EMPTY_BUCKET.
-    unsafe fn new_uninitialized(capacity: usize) -> RawTable<K, V> {
+    /// Returns an error if it cannot allocate or capacity overflows.
+    unsafe fn new_uninitialized_internal(
+        capacity: usize,
+        fallibility: Fallibility,
+    ) -> Result<RawTable<K, V>, CollectionAllocErr> {
         if capacity == 0 {
-            return RawTable {
+            return Ok(RawTable {
                 size: 0,
                 capacity_mask: capacity.wrapping_sub(1),
                 hashes: TaggedHashUintPtr::new(EMPTY as *mut HashUint),
                 marker: marker::PhantomData,
-            };
+            });
         }
-
-        // No need for `checked_mul` before a more restrictive check performed
-        // later in this method.
-        let hashes_size = capacity.wrapping_mul(size_of::<HashUint>());
-        let pairs_size = capacity.wrapping_mul(size_of::<(K, V)>());
 
         // Allocating hashmaps is a little tricky. We need to allocate two
         // arrays, but since we know their sizes and alignments up front,
         // we just allocate a single array, and then have the subarrays
         // point into it.
-        //
-        // This is great in theory, but in practice getting the alignment
-        // right is a little subtle. Therefore, calculating offsets has been
-        // factored out into a different function.
-        let (alignment, size, oflo) = calculate_allocation(hashes_size,
-                                                           align_of::<HashUint>(),
-                                                           pairs_size,
-                                                           align_of::<(K, V)>());
-        assert!(!oflo, "capacity overflow");
+        let (layout, _) = calculate_layout::<K, V>(capacity)?;
+        let buffer = Global.alloc(layout).map_err(|e| match fallibility {
+            Infallible => handle_alloc_error(layout),
+            Fallible => e,
+        })?;
 
-        // One check for overflow that covers calculation and rounding of size.
-        let size_of_bucket = size_of::<HashUint>().checked_add(size_of::<(K, V)>()).unwrap();
-        assert!(size >=
-                capacity.checked_mul(size_of_bucket)
-                    .expect("capacity overflow"),
-                "capacity overflow");
-
-        let buffer = Heap.alloc(Layout::from_size_align(size, alignment).unwrap())
-            .unwrap_or_else(|e| Heap.oom(e));
-
-        let hashes = buffer as *mut HashUint;
-
-        RawTable {
+        Ok(RawTable {
             capacity_mask: capacity.wrapping_sub(1),
             size: 0,
-            hashes: TaggedHashUintPtr::new(hashes),
+            hashes: TaggedHashUintPtr::new(buffer.cast().as_ptr()),
             marker: marker::PhantomData,
+        })
+    }
+    /// Does not initialize the buckets. The caller should ensure they,
+    /// at the very least, set every hash to EMPTY_BUCKET.
+    unsafe fn new_uninitialized(capacity: usize) -> RawTable<K, V> {
+        match Self::new_uninitialized_internal(capacity, Infallible) {
+            Err(CollectionAllocErr::CapacityOverflow) => panic!("capacity overflow"),
+            Err(CollectionAllocErr::AllocErr) => unreachable!(),
+            Ok(table) => { table }
         }
     }
 
@@ -795,7 +815,7 @@ impl<K, V> RawTable<K, V> {
         let pairs_size = self.capacity() * size_of::<(K, V)>();
 
         let (pairs_offset, _, oflo) =
-            calculate_offsets(hashes_size, pairs_size, align_of::<(K, V)>());
+            calculate_offsets(hashes_size, pairs_size, mem::align_of::<(K, V)>());
         debug_assert!(!oflo, "capacity overflow");
 
         let buffer = self.hashes.ptr() as *mut u8;
@@ -817,6 +837,23 @@ impl<K, V> RawTable<K, V> {
             ptr::write_bytes(ret.hashes.ptr(), 0, capacity);
             ret
         }
+    }
+
+    fn new_internal(
+        capacity: usize,
+        fallibility: Fallibility,
+    ) -> Result<RawTable<K, V>, CollectionAllocErr> {
+        unsafe {
+            let ret = RawTable::new_uninitialized_internal(capacity, fallibility)?;
+            ptr::write_bytes(ret.hashes.ptr(), 0, capacity);
+            Ok(ret)
+        }
+    }
+
+    /// Tries to create a new raw table from a given capacity. If it cannot allocate,
+    /// it returns with AllocErr.
+    pub fn try_new(capacity: usize) -> Result<RawTable<K, V>, CollectionAllocErr> {
+        Self::new_internal(capacity, Fallible)
     }
 
     /// The hashtable's capacity, similar to a vector's.
@@ -873,7 +910,7 @@ impl<K, V> RawTable<K, V> {
                 elems_left,
                 marker: marker::PhantomData,
             },
-            table: Shared::from(self),
+            table: NonNull::from(self),
             marker: marker::PhantomData,
         }
     }
@@ -1020,7 +1057,7 @@ impl<K, V> IntoIter<K, V> {
 
 /// Iterator over the entries in a table, clearing the table.
 pub struct Drain<'a, K: 'a, V: 'a> {
-    table: Shared<RawTable<K, V>>,
+    table: NonNull<RawTable<K, V>>,
     iter: RawBuckets<'static, K, V>,
     marker: marker::PhantomData<&'a RawTable<K, V>>,
 }
@@ -1181,15 +1218,16 @@ unsafe impl<#[may_dangle] K, #[may_dangle] V> Drop for RawTable<K, V> {
         let hashes_size = self.capacity() * size_of::<HashUint>();
         let pairs_size = self.capacity() * size_of::<(K, V)>();
         let (align, size, oflo) = calculate_allocation(hashes_size,
-                                                       align_of::<HashUint>(),
+                                                       mem::align_of::<HashUint>(),
                                                        pairs_size,
-                                                       align_of::<(K, V)>());
+                                                       mem::align_of::<(K, V)>());
 
         debug_assert!(!oflo, "should be impossible");
 
+        let (layout, _) = calculate_layout::<K, V>(self.capacity())
+            .unwrap_or_else(|_| unsafe { hint::unreachable_unchecked() });
         unsafe {
-            Heap.dealloc(self.hashes.ptr() as *mut u8,
-                         Layout::from_size_align(size, align).unwrap());
+            Global.dealloc(NonNull::new_unchecked(self.hashes.ptr()).cast(), layout);
             // Remember how everything was allocated out of one buffer
             // during initialization? We only need one call to free here.
         }

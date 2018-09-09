@@ -1,4 +1,4 @@
-use core::marker::PhantomData;
+use std::marker::PhantomData;
 
 use common::{IO_BASE, states};
 use volatile::prelude::*;

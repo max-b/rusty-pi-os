@@ -8,8 +8,8 @@ mod imp;
 mod tests;
 
 use mutex::Mutex;
-use alloc::heap::{Alloc, AllocErr, Layout};
-use std::cmp::max;
+use std::alloc::{Alloc, GlobalAlloc, AllocErr, Layout};
+use std::ptr::NonNull;
 
 /// Thread-safe (locking) wrapper around a particular memory allocator.
 #[derive(Debug)]
@@ -35,6 +35,49 @@ impl Allocator {
     }
 }
 
+unsafe impl GlobalAlloc for Allocator {
+    /// Allocates memory. Returns a pointer meeting the size and alignment
+    /// properties of `layout.size()` and `layout.align()`.
+    ///
+    /// If this method returns an `Ok(addr)`, `addr` will be non-null address
+    /// pointing to a block of storage suitable for holding an instance of
+    /// `layout`. In particular, the block will be at least `layout.size()`
+    /// bytes large and will be aligned to `layout.align()`. The returned block
+    /// of storage may or may not have its contents initialized or zeroed.
+    ///
+    /// # Safety
+    ///
+    /// The _caller_ must ensure that `layout.size() > 0` and that
+    /// `layout.align()` is a power of two. Parameters not meeting these
+    /// conditions may result in undefined behavior.
+    ///
+    /// # Errors
+    ///
+    /// Returning `Err` indicates that either memory is exhausted
+    /// (`AllocError::Exhausted`) or `layout` does not meet this allocator's
+    /// size or alignment constraints (`AllocError::Unsupported`).
+    unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
+        self.0.lock().as_mut().expect("allocator uninitialized").alloc(layout).expect("allocate failed")
+    }
+
+    /// Deallocates the memory referenced by `ptr`.
+    ///
+    /// # Safety
+    ///
+    /// The _caller_ must ensure the following:
+    ///
+    ///   * `ptr` must denote a block of memory currently allocated via this
+    ///     allocator
+    ///   * `layout` must properly represent the original layout used in the
+    ///     allocation call that returned `ptr`
+    ///
+    /// Parameters not meeting these conditions may result in undefined
+    /// behavior.
+    unsafe fn dealloc(&self, ptr: *mut u8, layout: Layout) {
+        self.0.lock().as_mut().expect("allocator uninitialized").dealloc(ptr, layout);
+    }
+}
+
 unsafe impl<'a> Alloc for &'a Allocator {
     /// Allocates memory. Returns a pointer meeting the size and alignment
     /// properties of `layout.size()` and `layout.align()`.
@@ -56,8 +99,13 @@ unsafe impl<'a> Alloc for &'a Allocator {
     /// Returning `Err` indicates that either memory is exhausted
     /// (`AllocError::Exhausted`) or `layout` does not meet this allocator's
     /// size or alignment constraints (`AllocError::Unsupported`).
-    unsafe fn alloc(&mut self, layout: Layout) -> Result<*mut u8, AllocErr> {
-        self.0.lock().as_mut().expect("allocator uninitialized").alloc(layout)
+    unsafe fn alloc(&mut self, layout: Layout) -> Result<NonNull<u8>, AllocErr> {
+        match self.0.lock().as_mut().expect("allocator uninitialized").alloc(layout) {
+            Err(err) => Err(err),
+            Ok(ptr) => {
+                Ok(NonNull::new(ptr).expect("allocator non null"))
+            }
+        }
     }
 
     /// Deallocates the memory referenced by `ptr`.
@@ -73,8 +121,8 @@ unsafe impl<'a> Alloc for &'a Allocator {
     ///
     /// Parameters not meeting these conditions may result in undefined
     /// behavior.
-    unsafe fn dealloc(&mut self, ptr: *mut u8, layout: Layout) {
-        self.0.lock().as_mut().expect("allocator uninitialized").dealloc(ptr, layout);
+    unsafe fn dealloc(&mut self, ptr: NonNull<u8>, layout: Layout) {
+        self.0.lock().as_mut().expect("allocator uninitialized").dealloc(ptr.as_ptr(), layout);
     }
 }
 

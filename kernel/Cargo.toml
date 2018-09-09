@@ -19,12 +19,28 @@ debug = true
 panic = "abort"
 lto = true
 
-[dependencies]
-pi = { path = "../pi", features = ["std"] }
-volatile = { path = "../volatile" }
+[package.metadata.cargo-xbuild]
+memcpy = true
+sysroot_path = "target/sysroot"
+
+[dependencies.pi]
+path = "../pi"
+stage = 1
+
+[dependencies.volatile]
+path = "../volatile"
+stage = 1
 
 # from assignment 1
-stack-vec = { path = "../../1-shell/stack-vec/" }
+[dependencies.stack-vec]
+path = "../../1-shell/stack-vec/"
+stage = 1
 
 # from assignment 2
-fat32 = { path = "../../2-fs/fat32/" }
+[dependencies.fat32]
+path = "../../2-fs/fat32/"
+stage = 1
+
+[dependencies.std]
+path = "../std"
+stage = 0

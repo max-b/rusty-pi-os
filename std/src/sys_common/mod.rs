@@ -40,7 +40,7 @@
 //- pub mod thread;
 //- pub mod thread_info;
 //- pub mod thread_local;
-//- pub mod util;
+pub mod util;
 //- pub mod wtf8;
 pub mod bytestring;
 //- pub mod process;

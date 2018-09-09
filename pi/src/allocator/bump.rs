@@ -1,19 +1,19 @@
-use std::fmt;
-use alloc::heap::{AllocErr, Layout};
+use std::alloc::{AllocErr, Layout};
 
 use allocator::util::*;
-use allocator::linked_list::LinkedList;
 
-/// A simple allocator that allocates based on size classes.
+/// A "bump" allocator: allocates memory by bumping a pointer; never frees.
+#[derive(Debug)]
 pub struct Allocator {
-    // FIXME: Add the necessary fields.
+    current: usize,
+    end: usize,
 }
 
 impl Allocator {
-    /// Creates a new bin allocator that will allocate memory from the region
+    /// Creates a new bump allocator that will allocate memory from the region
     /// starting at address `start` and ending at address `end`.
     pub fn new(start: usize, end: usize) -> Allocator {
-        unimplemented!("bin allocator")
+        unimplemented!("bump allocator")
     }
 
     /// Allocates memory. Returns a pointer meeting the size and alignment
@@ -37,7 +37,7 @@ impl Allocator {
     /// (`AllocError::Exhausted`) or `layout` does not meet this allocator's
     /// size or alignment constraints (`AllocError::Unsupported`).
     pub fn alloc(&mut self, layout: Layout) -> Result<*mut u8, AllocErr> {
-        unimplemented!("bin allocation")
+        unimplemented!("bump allocation")
     }
 
     /// Deallocates the memory referenced by `ptr`.
@@ -53,9 +53,7 @@ impl Allocator {
     ///
     /// Parameters not meeting these conditions may result in undefined
     /// behavior.
-    pub fn dealloc(&mut self, ptr: *mut u8, layout: Layout) {
-        unimplemented!("bin deallocation")
+    pub fn dealloc(&mut self, _ptr: *mut u8, _layout: Layout) {
+        unimplemented!("bump deallocation")
     }
 }
-//
-// FIXME: Implement `Debug` for `Allocator`.

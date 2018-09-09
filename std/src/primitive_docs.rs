@@ -772,7 +772,7 @@ mod prim_i64 { }
 /// However, please note that examples are shared between primitive integer
 /// types. So it's normal if you see usage of types like `i8` in there.
 ///
-#[unstable(feature = "i128", issue="35118")]
+#[stable(feature = "i128", since = "1.26.0")]
 mod prim_i128 { }
 
 #[doc(primitive = "u8")]
@@ -832,7 +832,7 @@ mod prim_u64 { }
 /// However, please note that examples are shared between primitive integer
 /// types. So it's normal if you see usage of types like `u8` in there.
 ///
-#[unstable(feature = "i128", issue="35118")]
+#[stable(feature = "i128", since = "1.26.0")]
 mod prim_u128 { }
 
 #[doc(primitive = "isize")]

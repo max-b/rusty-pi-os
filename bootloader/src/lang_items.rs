@@ -1,6 +1,18 @@
+extern crate core;
+
+use std::alloc::Layout;
+use lang_items::core::panic::PanicInfo;
+
 #[lang = "eh_personality"] pub extern fn eh_personality() {}
 
-#[panic_implementation] #[no_mangle] pub extern fn panic_fmt(_panic: &::core::panic::PanicInfo) -> ! { loop{} }
+#[panic_handler] #[cfg(not(test))] #[no_mangle] pub extern fn panic_fmt(_panic: &PanicInfo) -> ! { loop{} }
+
+#[cfg(not(test))]
+#[doc(hidden)]
+#[alloc_error_handler]
+pub fn rust_oom(layout: Layout) -> ! {
+    loop{}
+}
 
 #[no_mangle]
 pub unsafe extern fn memcpy(dest: *mut u8, src: *const u8, n: usize) -> *mut u8 {

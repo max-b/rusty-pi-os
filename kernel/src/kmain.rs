@@ -7,23 +7,21 @@
 #![feature(never_type)]
 #![feature(ptr_internals)]
 #![feature(panic_implementation)]
+#![feature(panic_handler)]
 #![feature(nll)]
-#![feature(repr_align)]
 #![feature(attr_literals)]
 #![feature(exclusive_range_pattern)]
 #![feature(alloc, allocator_api, global_allocator)]
+#![feature(alloc_error_handler)]
 
 #[macro_use]
 #[allow(unused_imports)]
 extern crate alloc;
-#[macro_use]
-extern crate core;
 extern crate pi;
 extern crate stack_vec;
 extern crate fat32;
 extern crate volatile;
 
-pub mod allocator;
 pub mod lang_items;
 pub mod shell;
 pub mod racoon;
@@ -36,7 +34,8 @@ use pi::framebuffer::Framebuffer;
 use racoon::RACOON_STRING;
 
 #[cfg(not(test))]
-use allocator::Allocator;
+use pi::allocator::Allocator;
+
 use fs::FileSystem;
 
 #[cfg(not(test))]

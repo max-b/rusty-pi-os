@@ -51,7 +51,7 @@ impl Framebuffer {
         kprintln!("fb_base_addr = {:x}", fb_base_addr as u32);
         kprintln!("size = {:x}", size);
 
-        let buffer = unsafe { ::core::slice::from_raw_parts_mut(fb_base_addr, size) };
+        let buffer = unsafe { std::slice::from_raw_parts_mut(fb_base_addr, size) };
 
         Ok(Framebuffer {
             size,

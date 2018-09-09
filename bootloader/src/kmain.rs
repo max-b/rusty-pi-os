@@ -1,7 +1,8 @@
 #![feature(asm, lang_items)]
 #![feature(panic_implementation)]
+#![feature(panic_handler)]
+#![feature(alloc_error_handler)]
 
-extern crate core;
 extern crate pi;
 extern crate xmodem;
 
@@ -11,6 +12,11 @@ use xmodem::{Xmodem, Progress};
 use pi::uart::MiniUart;
 use pi::timer::spin_sleep_ms;
 use pi::console::*;
+use pi::allocator::Allocator;
+
+#[cfg(not(test))]
+#[global_allocator]
+pub static ALLOCATOR: Allocator = Allocator::uninitialized();
 
 /// Start address of the binary to load and of the bootloader.
 const BOOTLOADER_START_ADDR: usize = 0x4000000;
@@ -40,7 +46,7 @@ pub unsafe extern "C" fn kmain() {
     let mut uart = MiniUart::new();
     uart.set_read_timeout(750);
 
-    let buffer = core::slice::from_raw_parts_mut(BINARY_START, MAX_BINARY_SIZE);
+    let buffer = std::slice::from_raw_parts_mut(BINARY_START, MAX_BINARY_SIZE);
 
     kprintln!("Starting Bootloader");
     kprintln!("buffer size = {}", buffer.len());
