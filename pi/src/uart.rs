@@ -70,9 +70,9 @@ impl MiniUart {
         };
 
         // Set to 115200 baud (divider 270)
-        // registers.AUX_MU_BAUD_REG.write(270);
+        registers.AUX_MU_BAUD_REG.write(270);
         // Set to 9600 baud
-        registers.AUX_MU_BAUD_REG.write(3240);
+        // registers.AUX_MU_BAUD_REG.write(3240);
 
         // Set to 8 bit size
         registers.AUX_MU_LCR_REG.or_mask(0b11);
