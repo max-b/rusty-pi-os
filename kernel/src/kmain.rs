@@ -58,6 +58,10 @@ pub unsafe extern "C" fn kmain() {
 
     kprintln!("{}", RACOON_STRING);
 
+    for tag in pi::atags::Atags::get() {
+        kprintln!("{:#?}", tag);
+    }
+
     let mut framebuffer = Framebuffer::new().expect("Error creating new framebuffer");
 
     let mut pixel_cursor: Pixel = Default::default();
