@@ -8,8 +8,13 @@
 #![feature(extern_prelude)]
 #![feature(optin_builtin_traits)]
 #![feature(nll)]
-#![feature(pointer_methods)]
 #![feature(allocator_api)]
+#![feature(alloc)]
+#![feature(raw_vec_internals)]
+
+#[macro_use]
+#[allow(unused_imports)]
+extern crate alloc;
 
 extern crate volatile;
 extern crate stack_vec;
