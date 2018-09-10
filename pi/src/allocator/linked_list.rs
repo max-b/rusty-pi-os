@@ -1,6 +1,7 @@
 #![allow(dead_code)]
 
 use std::{fmt, ptr};
+use byteorder::{ByteOrder, LittleEndian};
 
 /// An _instrusive_ linked list of addresses.
 ///
@@ -14,7 +15,6 @@ use std::{fmt, ptr};
 /// using `push()`. The first address in the list, if any, can be removed and
 /// returned using `pop()` or returned (but not removed) using `peek()`.
 ///
-/// ```rust
 /// # let address_1 = (&mut (1 as usize)) as *mut usize;
 /// # let address_2 = (&mut (2 as usize)) as *mut usize;
 /// let mut list = LinkedList::new();
@@ -27,7 +27,6 @@ use std::{fmt, ptr};
 /// assert_eq!(list.pop(), Some(address_2));
 /// assert_eq!(list.pop(), Some(address_1));
 /// assert_eq!(list.pop(), None);
-/// ```
 ///
 /// `LinkedList` exposes two iterators. The first, obtained via `iter()`,
 /// iterates over all of the addresses in the list. The second, returned from
@@ -35,7 +34,6 @@ use std::{fmt, ptr};
 /// `value()` and `pop()` methods of `Node` can be used to read the value or pop
 /// the value from the list, respectively.
 ///
-/// ```rust
 /// # let address_1 = (&mut (1 as usize)) as *mut usize;
 /// # let address_2 = (&mut (2 as usize)) as *mut usize;
 /// # let address_3 = (&mut (3 as usize)) as *mut usize;
@@ -55,7 +53,6 @@ use std::{fmt, ptr};
 /// assert_eq!(list.pop(), Some(address_3));
 /// assert_eq!(list.pop(), Some(address_1));
 /// assert_eq!(list.pop(), None);
-/// ```
 #[derive(Copy, Clone)]
 pub struct LinkedList {
     head: *mut usize,
@@ -84,14 +81,20 @@ impl LinkedList {
     /// `*item = some_usize` is a safe operation as long as the pointer resides
     /// in `self`.
     pub unsafe fn push(&mut self, item: *mut usize) {
-        *item = self.head as usize;
+        let item_bytes = std::slice::from_raw_parts_mut(item as *mut u8, std::mem::size_of::<usize>());
+        LittleEndian::write_uint(&mut item_bytes[..], self.head as u64, std::mem::size_of::<usize>());
+
         self.head = item;
     }
 
     /// Removes and returns the first item in the list, if any.
     pub fn pop(&mut self) -> Option<*mut usize> {
         let value = self.peek()?;
-        self.head = unsafe { *value as *mut usize };
+        unsafe {
+            let value_bytes = std::slice::from_raw_parts_mut(value as *mut u8, std::mem::size_of::<usize>());
+            let new_head = LittleEndian::read_uint(&value_bytes[..], std::mem::size_of::<usize>()) as usize;
+            self.head = new_head as *mut usize;
+        }
         Some(value)
     }
 
@@ -118,6 +121,12 @@ impl LinkedList {
             current: self.head,
             _list: self
         }
+    }
+}
+
+impl Default for LinkedList {
+    fn default() -> LinkedList {
+        LinkedList::new()
     }
 }
 
@@ -154,7 +163,12 @@ impl Node {
     /// Removes and returns the value of this item from the linked list it
     /// belongs to.
     pub fn pop(self) -> *mut usize {
-        unsafe { *(self.prev) = *(self.value); }
+        unsafe {
+            let value_bytes = std::slice::from_raw_parts_mut(self.value as *mut u8, std::mem::size_of::<usize>());
+            let prev_bytes = std::slice::from_raw_parts_mut(self.prev as *mut u8, std::mem::size_of::<usize>());
+            let value = LittleEndian::read_uint(&value_bytes[..], std::mem::size_of::<usize>()) as usize;
+            LittleEndian::write_uint(&mut prev_bytes[..], value as u64, std::mem::size_of::<usize>());
+        }
         self.value
     }
 

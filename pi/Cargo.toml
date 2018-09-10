@@ -6,6 +6,7 @@ authors = ["Sergio Benitez <sb@sergio.bz>"]
 [dependencies]
 volatile = { path = "../volatile" }
 stack-vec = { path = "../../1-shell/stack-vec/" }
+byteorder = { version = "1", default-features = false }
 
 [profile.dev]
 std = { path = "../std" }

@@ -1,7 +1,7 @@
 mod linked_list;
 mod util;
 
-#[path = "bump.rs"]
+#[path = "bin.rs"]
 mod imp;
 
 #[cfg(test)]
@@ -10,6 +10,7 @@ mod tests;
 use mutex::Mutex;
 use std::alloc::{Alloc, GlobalAlloc, AllocErr, Layout};
 use std::ptr::NonNull;
+use atags::Atags;
 
 /// Thread-safe (locking) wrapper around a particular memory allocator.
 #[derive(Debug)]
@@ -137,5 +138,13 @@ extern "C" {
 fn memory_map() -> Option<(usize, usize)> {
     let binary_end = unsafe { (&_end as *const u8) as u32 };
 
-    unimplemented!("memory map fetch")
+    for tag in Atags::get() {
+        match tag.mem() {
+            Some(mem) => {
+                return Some((binary_end as usize, mem.size as usize));
+            },
+            None => {},
+        }
+    }
+    None
 }

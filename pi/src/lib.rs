@@ -18,6 +18,7 @@ extern crate alloc;
 
 extern crate volatile;
 extern crate stack_vec;
+extern crate byteorder;
 
 pub mod timer;
 pub mod uart;

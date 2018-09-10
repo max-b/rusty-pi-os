@@ -51,7 +51,7 @@ impl<'a> From<&'a raw::Atag> for Atag {
                 (raw::Atag::MEM, &raw::Kind { mem }) => Atag::from(mem),
                 (raw::Atag::CMDLINE, &raw::Kind { ref cmd }) => Atag::from(cmd),
                 (raw::Atag::NONE, _) => Atag::None,
-                (id, _) => unimplemented!()
+                (_id, _) => unimplemented!()
             }
         }
     }
