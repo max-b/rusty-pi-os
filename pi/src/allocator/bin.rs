@@ -1,4 +1,4 @@
-use std::fmt;
+use std::{fmt, cmp};
 use alloc::alloc::{AllocErr, Layout};
 
 use allocator::util::*;
@@ -7,15 +7,14 @@ use allocator::linked_list::{LinkedList, Node};
 #[derive(Copy, Clone, Debug, Default)]
 pub struct Bin {
     size: usize,
-    count: usize,
     freed: LinkedList
 }
 
-/// MAX_BIN_SIZE is 1GB
-const MAX_BIN_SIZE: usize = 1 << 39;
-
-///  39 bins will cover 2^1 -> 2^39
+///  39 bins will cover 2^1 -> 2^39(1GB)
 const NUM_BINS: usize = 39;
+
+/// Align to at least 0x10
+const MIN_ALIGN: usize = 0x10;
 
 /// A simple allocator that allocates based on size classes.
 pub struct Allocator {
@@ -40,14 +39,27 @@ fn power_of_two_digit(num: usize) -> usize {
     }
 }
 
-fn bin_num(size: usize) -> usize {
+fn calculate_bin_num(size: usize) -> usize {
     power_of_two_digit(size).saturating_sub(1)
 }
 
 fn find_aligned_node(list: &mut LinkedList, align: usize) -> Option<Node> {
     for node in list.iter_mut() {
-        if node.value() as usize % align == 0 {
+        if ((node.value() as usize).trailing_zeros()) >= align.trailing_zeros() {
             return Some(node);
+        }
+    }
+    None
+}
+
+fn find_containing_node(list: &mut LinkedList, align: usize, alloc_size: usize, bin_size: usize) -> Option<(Node, usize)> {
+    let mask = (!0x00usize) << power_of_two_digit(align);
+    for node in list.iter_mut() {
+        let val = node.value() as usize;
+        let end = val + bin_size;
+        let next_aligned = (val.saturating_add(align)) & mask;
+        if next_aligned > val && next_aligned + alloc_size <= end {
+            return Some((node, next_aligned));
         }
     }
     None
@@ -93,28 +105,30 @@ impl Allocator {
     pub fn alloc(&mut self, layout: Layout) -> Result<*mut u8, AllocErr> {
         let size = layout.size();
         let align = layout.align();
-        let bin_num = bin_num(size);
+        let bin_num = calculate_bin_num(size);
+        let bin_size = 1 << bin_num;
         let bin = &mut self.bins[bin_num];
 
         let aligned_node = find_aligned_node(&mut bin.freed, align);
         match aligned_node {
             Some(node) => {
                 let val = node.pop() as *mut u8;
-                bin.count -= 1;
                 return Ok(val);
             }
             None => {}
         }
 
-        // TODO: This should probably put the other freed node
-        // into the current bin
         let mut bin_cursor = bin_num + 1;
         while bin_cursor < NUM_BINS {
             let aligned_node = find_aligned_node(&mut self.bins[bin_cursor].freed, align);
             match aligned_node {
                 Some(node) => {
                     let val = node.pop() as *mut u8;
-                    self.bins[bin_cursor].count -= 1;
+                    let new_segment_start = (val as usize).saturating_add(bin_size);
+                    let cursor_bin_size = 1 << bin_cursor;
+                    let new_segment_end = (val as usize).saturating_add(cursor_bin_size);
+                    self.return_to_freed(new_segment_start, new_segment_end);
+
                     return Ok(val);
                 },
                 None => {}
@@ -122,7 +136,29 @@ impl Allocator {
             bin_cursor += 1;
         }
 
-        let next_aligned = align_up(self.current, align);
+        let mut bin_cursor = bin_num + 1;
+        while bin_cursor < NUM_BINS {
+            let containing_node = find_containing_node(&mut self.bins[bin_cursor].freed, align, size, 1 << bin_cursor);
+            match containing_node {
+                Some((node, next_aligned)) => {
+                    let val = node.pop() as usize;
+                    let cursor_bin_size = 1 << bin_cursor;
+                    let new_segment_start = val as usize;
+                    let new_segment_end = next_aligned;
+                    self.return_to_freed(new_segment_start, new_segment_end);
+
+                    let new_segment_start = next_aligned.saturating_add(bin_size);
+                    let new_segment_end = val.saturating_add(cursor_bin_size);
+                    self.return_to_freed(new_segment_start, new_segment_end);
+
+                    return Ok(next_aligned as *mut u8);
+                },
+                None => {}
+            }
+            bin_cursor += 1;
+        }
+
+        let next_aligned = align_up(self.current, cmp::max(MIN_ALIGN, align));
         if next_aligned.saturating_add(size) >= self.end {
             return Err(AllocErr);
         }
@@ -130,6 +166,10 @@ impl Allocator {
         self.current = next_aligned.saturating_add(size);
 
         return Ok(next_aligned as *mut u8);
+    }
+
+    fn return_to_freed(&mut self, start: usize, end: usize) {
+        unsafe { self.dealloc(start as *mut u8, Layout::from_size_align_unchecked(end.saturating_sub(start), 0)); }
     }
 
     /// Deallocates the memory referenced by `ptr`.
@@ -146,12 +186,33 @@ impl Allocator {
     /// Parameters not meeting these conditions may result in undefined
     /// behavior.
     pub fn dealloc(&mut self, ptr: *mut u8, layout: Layout) {
-        let bin_num = bin_num(layout.size());
+        let mut bin_num = calculate_bin_num(layout.size());
+        // If size does not exactly match bin size
+        // can we put remainder into smaller bins?
+        if !layout.size().is_power_of_two() {
+            bin_num = bin_num.saturating_sub(1);
+        }
+
         let bin = &mut self.bins[bin_num];
+        let bin_size = 1 << bin_num;
         if layout.size() >= std::mem::size_of::<usize>() {
+            // Check for segments we may be able to merge together
+            for node in bin.freed.iter_mut() {
+                let node_val = node.value() as usize;
+                let ptr_val = ptr as usize;
+                if ptr_val > node_val && node_val + bin_size == ptr_val {
+                    node.pop();
+                    unsafe { self.dealloc(node_val as *mut u8, Layout::from_size_align_unchecked(1 << (bin_num + 1), 0)); }
+                    return;
+                } else if node_val > ptr_val && ptr_val + bin_size == node_val {
+                    node.pop();
+                    unsafe { self.dealloc(ptr_val as *mut u8, Layout::from_size_align_unchecked(1 << (bin_num + 1), 0)); }
+                    return;
+                }
+            }
+
             unsafe {
                 bin.freed.push(ptr as *mut usize);
-                bin.count += 1;
             }
         }
     }

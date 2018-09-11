@@ -46,7 +46,6 @@ impl Allocator {
         }
 
         self.current = next_aligned.saturating_add(layout.size());
-        kprintln!("Allocating: {:#?}", next_aligned);
         Ok(next_aligned as *mut u8)
     }
 
@@ -64,8 +63,6 @@ impl Allocator {
     /// Parameters not meeting these conditions may result in undefined
     /// behavior.
     pub fn dealloc(&mut self, ptr: *mut u8, _layout: Layout) {
-        kprintln!("== In DeAlloc ==");
-        kprintln!("Theoretically Freeing: {:#?}", ptr);
 
     }
 }
