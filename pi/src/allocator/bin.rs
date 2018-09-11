@@ -186,6 +186,13 @@ impl Allocator {
     /// Parameters not meeting these conditions may result in undefined
     /// behavior.
     pub fn dealloc(&mut self, ptr: *mut u8, layout: Layout) {
+        // first check if it's on the border of "wilderness"
+        // and contract border from there
+        if (ptr as usize).saturating_add(layout.size()) == self.current {
+            self.current -= layout.size();
+            return;
+        }
+
         let mut bin_num = calculate_bin_num(layout.size());
         // If size does not exactly match bin size
         // can we put remainder into smaller bins?
