@@ -29,7 +29,7 @@ pub mod propertytag;
 pub mod framebuffer;
 pub mod common;
 pub mod allocator;
-
-#[macro_export]
+mod character_set;
 pub mod console;
+pub mod screen;
 pub mod atags;

@@ -11,18 +11,42 @@ use stack_vec::StackVec;
 // https://github.com/raspberrypi/firmware/wiki/Mailbox
 // for info on address locations, etc
 
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Copy, Debug)]
 pub struct Color {
     pub red: u8,
     pub green: u8,
     pub blue: u8,
 }
 
-#[derive(Clone, Debug, Default)]
-pub struct Pixel {
-    pub color: Color,
+impl Default for Color {
+    fn default() -> Color {
+        Color {
+            red: 0xff,
+            blue: 0xff,
+            green: 0xff,
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug)]
+pub struct Position {
     pub x: usize,
     pub y: usize,
+}
+
+impl Default for Position {
+    fn default() -> Position {
+        Position {
+            x: 10,
+            y: 10
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Default)]
+pub struct Pixel {
+    pub color: Color,
+    pub position: Position,
 }
 
 pub struct Framebuffer {
@@ -87,7 +111,7 @@ impl Framebuffer {
     }
 
     pub fn draw_pixel(&mut self, pixel: &Pixel) {
-        let fb_index = (pixel.y * self.width * 3) + (pixel.x * 3);
+        let fb_index = (pixel.position.y * self.width * 3) + (pixel.position.x * 3);
         self.buffer[fb_index].write(pixel.color.blue);
         self.buffer[fb_index + 1].write(pixel.color.green);
         self.buffer[fb_index + 2].write(pixel.color.red);

@@ -9,9 +9,8 @@
 #![feature(panic_implementation)]
 #![feature(panic_handler)]
 #![feature(nll)]
-#![feature(attr_literals)]
 #![feature(exclusive_range_pattern)]
-#![feature(alloc, allocator_api, global_allocator)]
+#![feature(alloc, allocator_api)]
 #![feature(alloc_error_handler)]
 #![feature(panic_info_message)]
 
@@ -27,12 +26,13 @@ pub mod lang_items;
 pub mod shell;
 pub mod racoon;
 pub mod fs;
+pub mod draw;
 
 use volatile::Writeable;
 use pi::gpio::Gpio;
 use pi::console::{CONSOLE, kprint, kprintln};
-use pi::framebuffer::{Framebuffer, Pixel};
 use racoon::RACOON_STRING;
+use shell::shell;
 
 #[cfg(not(test))]
 use pi::allocator::Allocator;
@@ -48,6 +48,7 @@ pub static FILE_SYSTEM: FileSystem = FileSystem::uninitialized();
 #[no_mangle]
 #[cfg(not(test))]
 pub unsafe extern "C" fn kmain() {
+
     let mut pin_16 = Gpio::new(16).into_output();
     let mut pin_20 = Gpio::new(20).into_output();
     let mut pin_21 = Gpio::new(21).into_output();
@@ -56,79 +57,19 @@ pub unsafe extern "C" fn kmain() {
     let mut pin_20_on = false;
     let mut pin_21_on = false;
 
-    kprintln!("{}", RACOON_STRING);
+    kprintln!("{}", RACCOON_STRING);
 
     for tag in pi::atags::Atags::get() {
         kprintln!("{:#?}", tag);
     }
 
-    let mut framebuffer = Framebuffer::new().expect("Error creating new framebuffer");
-
-    let mut pixel_cursor: Pixel = Default::default();
-
-    loop {
-
-        kprint!("<- ");
-
-        let byte = {
-            let mut console = CONSOLE.lock();
-            console.read_byte()
-        };
-
-        kprintln!("0x{:x}", byte);
-
-        if byte == 0x61 {
-            pixel_cursor.x = pixel_cursor.x.wrapping_sub(1);
-        }
-        if byte == 0x64 {
-            pixel_cursor.x = pixel_cursor.x.wrapping_add(1);
-        }
-        if byte == 0x73 {
-            pixel_cursor.y = pixel_cursor.y.wrapping_add(1);
-        }
-        if byte == 0x77 {
-            pixel_cursor.y = pixel_cursor.y.wrapping_sub(1);
-        }
-        if byte == 0x31 {
-            pixel_cursor.color.red = pixel_cursor.color.red.wrapping_add(10);
-        }
-        if byte == 0x32 {
-            pixel_cursor.color.green = pixel_cursor.color.green.wrapping_add(10);
-        }
-        if byte == 0x33 {
-            pixel_cursor.color.blue = pixel_cursor.color.blue.wrapping_add(10);
-        }
-
-        framebuffer.draw_pixel(&pixel_cursor);
-
-        if byte == 0x20 {
-            framebuffer.clear();
-        }
-
-        if pin_16_on {
-            pin_16.clear();
-            pin_16_on = false;
-        } else {
-            pin_16.set();
-            pin_16_on = true
-        }
-        if byte == 0x41 {
-            if pin_20_on {
-                pin_20.clear();
-                pin_20_on = false;
-            } else {
-                pin_20.set();
-                pin_20_on = true
-            }
-        }
-        if byte == 0x42 {
-            if pin_21_on {
-                pin_21.clear();
-                pin_21_on = false;
-            } else {
-                pin_21.set();
-                pin_21_on = true
-            }
-        }
+    ALLOCATOR.initialize();
+    let mut v = vec![];
+    for i in 0..1000 {
+        v.push(i);
     }
+    kprintln!("allocated vec:");
+    kprintln!("{:x?}", v);
+
+    shell(">>> ");
 }
