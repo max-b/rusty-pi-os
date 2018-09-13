@@ -1,5 +1,3 @@
-#![feature(panic_info_message)]
-
 extern crate core;
 extern crate std;
 
