@@ -24,14 +24,13 @@ extern crate volatile;
 
 pub mod lang_items;
 pub mod shell;
-pub mod racoon;
+pub mod raccoon;
 pub mod fs;
 pub mod draw;
 
-use volatile::Writeable;
 use pi::gpio::Gpio;
 use pi::console::{CONSOLE, kprint, kprintln};
-use racoon::RACOON_STRING;
+use raccoon::RACCOON_STRING;
 use shell::shell;
 
 #[cfg(not(test))]
