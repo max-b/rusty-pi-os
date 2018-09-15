@@ -67,6 +67,8 @@ pub unsafe extern "C" fn kmain() {
     }
 
     ALLOCATOR.initialize();
+    FILE_SYSTEM.initialize();
+
     let mut v = vec![];
     for i in 0..1000 {
         v.push(i);
