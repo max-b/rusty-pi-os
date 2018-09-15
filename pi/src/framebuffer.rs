@@ -3,6 +3,7 @@ use volatile::prelude::*;
 use volatile::{Volatile};
 use console::kprintln;
 use propertytag::{send_tags, PropertyTag, PropertyId};
+
 use stack_vec::StackVec;
 
 // Many thanks to 
@@ -21,9 +22,9 @@ pub struct Color {
 impl Default for Color {
     fn default() -> Color {
         Color {
-            red: 0xff,
-            blue: 0xff,
-            green: 0xff,
+            red: 0x00,
+            blue: 0x00,
+            green: 0x00,
         }
     }
 }
@@ -62,6 +63,7 @@ impl Framebuffer {
         let physical_width_height_tag = PropertyTag::new(PropertyId::SetPhysicalWidthHeight);
         let virtual_width_height_tag = PropertyTag::new(PropertyId::SetVirtualWidthHeight);
         let set_depth_tag = PropertyTag::new(PropertyId::SetDepth);
+        let get_width_height_tag = PropertyTag::new(PropertyId::GetPhysicalWidthHeight);
         let allocate_buffer_tag = PropertyTag::new(PropertyId::AllocateBuffer);
 
         kprintln!("Allocate Buffer Property Tag:");
@@ -71,10 +73,12 @@ impl Framebuffer {
         tags.push(physical_width_height_tag)?;
         tags.push(virtual_width_height_tag)?;
         tags.push(set_depth_tag)?;
+        tags.push(get_width_height_tag)?;
         tags.push(allocate_buffer_tag)?;
         let tags = send_tags(&mut tags);
 
         let allocate_buffer_tag = tags.pop().unwrap();
+        let get_width_height_tag = tags.pop().unwrap();
         let set_depth_tag = tags.pop().unwrap();
         let virtual_width_height_tag = tags.pop().unwrap();
         let physical_width_height_tag = tags.pop().unwrap();
@@ -82,11 +86,12 @@ impl Framebuffer {
         kprintln!("physical_width_height_tag data: {:x?}", &physical_width_height_tag.data[..]);
         kprintln!("virtual_width_height_tag data: {:x?}", &virtual_width_height_tag.data[..]);
         kprintln!("set_depth_tag data: {:x?}", &set_depth_tag.data[..]);
+        kprintln!("get_width_height_tag data: {:x?}", &get_width_height_tag.data[..]);
         kprintln!("allocate_buffer_tag data: {:x?}", &allocate_buffer_tag.data[..]);
 
         // TODO: Check physical_width_height_tag data
-        let width = physical_width_height_tag.data[0] as usize;
-        let height = physical_width_height_tag.data[1] as usize;
+        let width = virtual_width_height_tag.data[0] as usize;
+        let height = virtual_width_height_tag.data[1] as usize;
 
         let fb_base_addr = (allocate_buffer_tag.data[0] - 0xc0000000) as *mut Volatile<u8>;
         let size = allocate_buffer_tag.data[1] as usize;

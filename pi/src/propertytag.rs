@@ -135,8 +135,8 @@ impl PropertyTag {
             },
             PropertyId::SetPhysicalWidthHeight => {
                 let mut data = [0x00; 32];
-                data[0] = 320;
-                data[1] = 240;
+                data[0] = 1024;
+                data[1] = 768;
                 PropertyTag {
                     id: property_id as u32,
                     byte_length: 8,
@@ -146,8 +146,8 @@ impl PropertyTag {
             },
             PropertyId::SetVirtualWidthHeight => {
                 let mut data = [0x00; 32];
-                data[0] = 320;
-                data[1] = 240;
+                data[0] = 1024;
+                data[1] = 768;
                 PropertyTag {
                     id: property_id as u32,
                     byte_length: 8,

@@ -29,6 +29,7 @@ pub mod propertytag;
 pub mod framebuffer;
 pub mod common;
 pub mod allocator;
+pub mod raccoon;
 mod character_set;
 pub mod console;
 pub mod screen;

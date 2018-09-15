@@ -24,14 +24,16 @@ extern crate volatile;
 
 pub mod lang_items;
 pub mod shell;
-pub mod raccoon;
 pub mod fs;
 pub mod draw;
 
 use pi::gpio::Gpio;
+use pi::timer;
 use pi::console::{CONSOLE, kprint, kprintln};
-use raccoon::RACCOON_STRING;
+use pi::screen::SCREEN;
+use pi::raccoon::RACCOON_STRING;
 use shell::shell;
+use fat32::traits::{self, Entry, Dir};
 
 #[cfg(not(test))]
 use pi::allocator::Allocator;
@@ -55,6 +57,8 @@ pub unsafe extern "C" fn kmain() {
     let mut pin_16_on = false;
     let mut pin_20_on = false;
     let mut pin_21_on = false;
+
+    timer::spin_sleep_ms(2000);
 
     kprintln!("{}", RACCOON_STRING);
 

@@ -1,9 +1,16 @@
 use stack_vec::StackVec;
 use pi::console::{kprint, kprintln, CONSOLE};
 use pi::screen::SCREEN;
+use pi::raccoon::RACCOON_STRING;
 use draw::draw_loop;
 use std::str;
+use std::io::Read;
+use fs::FileSystem;
+use fat32::traits::{self, Entry, Dir};
 
+
+pub static FILE_SYSTEM: FileSystem = FileSystem::uninitialized();
+const BOOTLOADER_START_ADDR: usize = 0x4000000;
 
 /// Error type for `Command` parse failures.
 #[derive(Debug)]
@@ -56,14 +63,58 @@ impl<'a> Command<'a> {
             "draw" => {
                 draw_loop();
             },
+            "raccoon" => {
+                SCREEN.lock().draw_string(&RACCOON_STRING);
+                SCREEN.lock().draw_char(0x0d);
+            }
+            "cat" => {
+                let mut iter = self.args.iter();
+                iter.next(); // skip over path
+                for arg in iter {
+                    match traits::FileSystem::open_file(&FILE_SYSTEM, arg) {
+                        Ok(mut file) => {
+                            let mut buf = vec![0; 100];
+                            file.read(&mut buf[..]);
+                            SCREEN.lock().draw_string(&file.metadata.name);
+                            SCREEN.lock().draw_char(0x0d);
+                            SCREEN.lock().draw_string(&String::from_utf8_lossy(&buf[..]));
+                            SCREEN.lock().draw_char(0x0d);
+                        },
+                        Err(_) => {}
+                    }
+                }
+            },
+            "ls" => {
+                let mut iter = self.args.iter();
+                iter.next(); // skip over path
+                for arg in iter {
+                    match traits::FileSystem::open_dir(&FILE_SYSTEM, arg) {
+                        Ok(dir) => {
+                            for entry in dir.entries().expect("iter") {
+                                SCREEN.lock().draw_string(&entry.name());
+                                SCREEN.lock().draw_char(0x0d);
+                            }
+                        },
+                        Err(_) => {}
+                    }
+                }
+            },
+            "clear" => {
+                SCREEN.lock().clear();
+            },
             "print" => {
                 let mut iter = self.args.iter();
                 iter.next();
-                for arg in iter {
-                    SCREEN.lock().draw_string(&arg);
-                    SCREEN.lock().draw_char(0x20);
+                if let Some(scale) = iter.next() {
+                    for arg in iter {
+                        SCREEN.lock().draw_string_scale(&arg, scale.parse::<usize>().unwrap_or(1));
+                        SCREEN.lock().draw_char_scale(0x20, scale.parse::<usize>().unwrap_or(1));
+                    }
+                    SCREEN.lock().draw_char_scale(0x0d, scale.parse::<usize>().unwrap_or(1));
                 }
-                SCREEN.lock().draw_char(0x0d);
+            },
+            "help" => unsafe {
+                asm!("br $0" : : "r"(BOOTLOADER_START_ADDR as usize));
             },
             _ => { kprintln!("unknown command: {}", self.path()); }
         }
@@ -76,6 +127,9 @@ pub fn shell(prefix: &str) -> ! {
     let mut buffer = StackVec::new(&mut raw_buffer);
     let parsed_cmd: [&str; 64] = [""; 64];
 
+    SCREEN.lock().clear();
+    SCREEN.lock().draw_string_scale(&"WELCOME TO MaxOS,5", 5);
+    SCREEN.lock().draw_char_scale(0x0d, 5);
     loop {
         kprint!("{}", prefix);
 
