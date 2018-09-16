@@ -116,7 +116,10 @@ impl Framebuffer {
     }
 
     pub fn draw_pixel(&mut self, pixel: &Pixel) {
-        let fb_index = (pixel.position.y * self.width * 3) + (pixel.position.x * 3);
+        let mut fb_index = (pixel.position.y * self.width * 3) + (pixel.position.x * 3);
+        if fb_index + 3 >= self.buffer.len() {
+            fb_index = fb_index % self.buffer.len();
+        }
         self.buffer[fb_index].write(pixel.color.blue);
         self.buffer[fb_index + 1].write(pixel.color.green);
         self.buffer[fb_index + 2].write(pixel.color.red);
