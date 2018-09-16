@@ -7,6 +7,9 @@ use std::str;
 use std::io::Read;
 use fs::FileSystem;
 use fat32::traits::{self, Entry, Dir};
+use pi::common::{ARM_POWER_MANAGEMENT_WDOG, ARM_POWER_MANAGEMENT_RSTC, ARM_POWER_MANAGEMENT_PASSWD, ARM_POWER_MANAGEMENT_FULL_RESET};
+use volatile::prelude::*;
+use volatile::{WriteVolatile};
 
 
 pub static FILE_SYSTEM: FileSystem = FileSystem::uninitialized();
@@ -111,6 +114,14 @@ impl<'a> Command<'a> {
                         SCREEN.lock().draw_char_scale(0x20, scale.parse::<usize>().unwrap_or(1));
                     }
                     SCREEN.lock().draw_char_scale(0x0d, scale.parse::<usize>().unwrap_or(1));
+                }
+            },
+            "reboot" => {
+                unsafe {
+                    let mut watchdog_register: &mut WriteVolatile<u32> = &mut *(ARM_POWER_MANAGEMENT_WDOG as *mut WriteVolatile<u32>);
+                    let mut reset_register: &mut WriteVolatile<u32> = &mut *(ARM_POWER_MANAGEMENT_RSTC as *mut WriteVolatile<u32>);
+                    watchdog_register.write(ARM_POWER_MANAGEMENT_PASSWD | 1);
+                    reset_register.write(ARM_POWER_MANAGEMENT_PASSWD | ARM_POWER_MANAGEMENT_FULL_RESET);
                 }
             },
             "help" => unsafe {
