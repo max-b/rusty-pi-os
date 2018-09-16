@@ -3,14 +3,17 @@ name = "pi"
 version = "0.1.0"
 authors = ["Sergio Benitez <sb@sergio.bz>"]
 
+[features]
+custom_std = ["std"]
+
 [dependencies]
 volatile = { path = "../volatile" }
 stack-vec = { path = "../../1-shell/stack-vec/" }
 byteorder = { version = "1", default-features = false }
-std = { path = "../../os/std" }
+
+std = { path = "../../os/std", optional = true }
 
 [profile.dev]
-std = { path = "../std" }
 panic = "abort"
 lto = true
 debug = true
@@ -19,6 +22,5 @@ debug = true
 debug = true
 
 [profile.release]
-std = { path = "../std" }
 panic = "abort"
 lto = true

@@ -20,17 +20,22 @@ extern crate volatile;
 extern crate stack_vec;
 extern crate byteorder;
 
+#[cfg(feature = "custom-std")]
+pub mod mailbox;
+#[cfg(feature = "custom-std")]
+pub mod propertytag;
+#[cfg(feature = "custom-std")]
+pub mod framebuffer;
+#[cfg(feature = "custom-std")]
+pub mod screen;
+
 pub mod timer;
 pub mod uart;
 pub mod gpio;
 pub mod mutex;
-pub mod mailbox;
-pub mod propertytag;
-pub mod framebuffer;
 pub mod common;
 pub mod allocator;
 pub mod raccoon;
 mod character_set;
 pub mod console;
-pub mod screen;
 pub mod atags;
