@@ -13,7 +13,6 @@ lto = true
 debug = true
 
 [profile.test]
-panic = "abort"
 lto = true
 debug = true
 
@@ -25,10 +24,14 @@ lto = true
 memcpy = false
 sysroot_path = "target/sysroot"
 
-[dependencies]
-pi = { path = "../pi" }
+[dependencies.pi]
+path = "../pi"
+features = ["custom-std"]
 
 # from assignment 1
-xmodem = { path = "../../1-shell/xmodem/" }
+[dependencies.xmodem]
+path = "../../1-shell/xmodem/"
+features = ["custom-std"]
 
-std = { path = "../std" }
+[dependencies.std]
+path = "../std"

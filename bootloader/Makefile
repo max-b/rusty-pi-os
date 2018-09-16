@@ -1,6 +1,7 @@
 TARGET ?= aarch64-none-elf
 CROSS ?= $(TARGET)
 
+DEBUG = 1
 CC := $(CROSS)-gcc
 CCFLAGS ?= -Wall -O2 -nostdlib -nostartfiles -ffreestanding -pie -fpie
 # LDFLAGS ?= --gc-sections -static -pie -nostdlib -nostartfiles --no-dynamic-linker

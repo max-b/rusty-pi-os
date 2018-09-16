@@ -2,6 +2,7 @@
 #![feature(panic_implementation)]
 #![feature(panic_handler)]
 #![feature(alloc_error_handler)]
+#![feature(panic_info_message)]
 
 extern crate pi;
 extern crate xmodem;
@@ -43,10 +44,12 @@ pub fn progress_fn(_progress: Progress) {
 
 #[no_mangle]
 pub unsafe extern "C" fn kmain() {
+    ALLOCATOR.initialize();
+
     let mut uart = MiniUart::new();
     uart.set_read_timeout(750);
 
-    let buffer = std::slice::from_raw_parts_mut(BINARY_START, MAX_BINARY_SIZE);
+    let mut buffer = std::slice::from_raw_parts_mut(BINARY_START, MAX_BINARY_SIZE);
 
     kprintln!("Starting Bootloader");
     kprintln!("buffer size = {}", buffer.len());
@@ -58,7 +61,7 @@ pub unsafe extern "C" fn kmain() {
     kprintln!("first few bytes of buffer = {:x},{:x},{:x},{:x},{:x},", buffer[0], buffer[1], buffer[2], buffer[3], buffer[4]);
     kprintln!("Send file now...");
     loop {
-        match Xmodem::receive_with_progress(&mut uart, &mut buffer[..], progress_fn) {
+        match Xmodem::receive_with_progress(&mut uart, &mut buffer, progress_fn) {
             Ok(num_bytes) => {
                 loop {
                     spin_sleep_ms(5000);
@@ -68,7 +71,8 @@ pub unsafe extern "C" fn kmain() {
                     jump_to(BINARY_START);
                 }
             },
-            Err(_err) => {
+            Err(err) => {
+                kprintln!("error receiving: {:?}", err);
                 continue;
             }
         }

@@ -2,15 +2,22 @@ extern crate core;
 
 use std::alloc::Layout;
 use lang_items::core::panic::PanicInfo;
+use pi::console::kprintln;
 
 #[lang = "eh_personality"] pub extern fn eh_personality() {}
 
-#[panic_handler] #[cfg(not(test))] #[no_mangle] pub extern fn panic_fmt(_panic: &PanicInfo) -> ! { loop{} }
+#[panic_handler] #[cfg(not(test))] #[no_mangle] pub extern fn panic_fmt(panic: &PanicInfo) -> ! {
+    kprintln!("=====Panic!=====");
+    kprintln!("{:?}", &panic);
+    loop{}
+}
 
 #[cfg(not(test))]
 #[doc(hidden)]
 #[alloc_error_handler]
 pub fn rust_oom(layout: Layout) -> ! {
+    kprintln!("Out of Memory 😮");
+    kprintln!("{:#?}", &layout);
     loop{}
 }
 
