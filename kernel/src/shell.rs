@@ -1,16 +1,18 @@
-use stack_vec::StackVec;
-use pi::console::{kprint, kprintln, CONSOLE};
-use pi::screen::SCREEN;
-use pi::raccoon::RACCOON_STRING;
 use draw::draw_loop;
-use std::str;
-use std::io::Read;
+use fat32::traits::{self, Dir, Entry};
 use fs::FileSystem;
-use fat32::traits::{self, Entry, Dir};
-use pi::common::{ARM_POWER_MANAGEMENT_WDOG, ARM_POWER_MANAGEMENT_RSTC, ARM_POWER_MANAGEMENT_PASSWD, ARM_POWER_MANAGEMENT_FULL_RESET};
+use pi::common::{
+    ARM_POWER_MANAGEMENT_FULL_RESET, ARM_POWER_MANAGEMENT_PASSWD, ARM_POWER_MANAGEMENT_RSTC,
+    ARM_POWER_MANAGEMENT_WDOG,
+};
+use pi::console::{kprint, kprintln, CONSOLE};
+use pi::raccoon::RACCOON_STRING;
+use pi::screen::SCREEN;
+use stack_vec::StackVec;
+use std::io::Read;
+use std::str;
 use volatile::prelude::*;
-use volatile::{WriteVolatile};
-
+use volatile::WriteVolatile;
 
 pub static FILE_SYSTEM: FileSystem = FileSystem::uninitialized();
 const BOOTLOADER_START_ADDR: usize = 0x4000000;
@@ -19,12 +21,12 @@ const BOOTLOADER_START_ADDR: usize = 0x4000000;
 #[derive(Debug)]
 enum Error {
     Empty,
-    TooManyArgs
+    TooManyArgs,
 }
 
 /// A structure representing a single shell command.
 struct Command<'a> {
-    args: StackVec<'a, &'a str>
+    args: StackVec<'a, &'a str>,
 }
 
 impl<'a> Command<'a> {
@@ -62,10 +64,10 @@ impl<'a> Command<'a> {
                     kprint!("{} ", arg);
                 }
                 kprintln!("");
-            },
+            }
             "draw" => {
                 draw_loop();
-            },
+            }
             "raccoon" => {
                 SCREEN.lock().draw_string(&RACCOON_STRING);
                 SCREEN.lock().draw_char(0x0d);
@@ -81,18 +83,24 @@ impl<'a> Command<'a> {
                                 Ok(_bytes_read) => {
                                     SCREEN.lock().draw_string(&file.metadata.name);
                                     SCREEN.lock().draw_char(0x0d);
-                                    SCREEN.lock().draw_string(&String::from_utf8_lossy(&buf[..]));
+                                    SCREEN
+                                        .lock()
+                                        .draw_string(&String::from_utf8_lossy(&buf[..]));
                                     SCREEN.lock().draw_char(0x0d);
-                                },
+                                }
                                 Err(error) => {
-                                    kprintln!("Error reading file {}: {:#?}", &file.metadata.name, error);
+                                    kprintln!(
+                                        "Error reading file {}: {:#?}",
+                                        &file.metadata.name,
+                                        error
+                                    );
                                 }
                             }
-                        },
+                        }
                         Err(_) => {}
                     }
                 }
-            },
+            }
             "ls" => {
                 let mut iter = self.args.iter();
                 iter.next(); // skip over path
@@ -103,37 +111,45 @@ impl<'a> Command<'a> {
                                 SCREEN.lock().draw_string(&entry.name());
                                 SCREEN.lock().draw_char(0x0d);
                             }
-                        },
+                        }
                         Err(_) => {}
                     }
                 }
-            },
+            }
             "clear" => {
                 SCREEN.lock().clear();
-            },
+            }
             "print" => {
                 let mut iter = self.args.iter();
                 iter.next();
                 if let Some(scale) = iter.next() {
                     for arg in iter {
-                        SCREEN.lock().draw_string_scale(&arg, scale.parse::<usize>().unwrap_or(1));
-                        SCREEN.lock().draw_char_scale(0x20, scale.parse::<usize>().unwrap_or(1));
+                        SCREEN
+                            .lock()
+                            .draw_string_scale(&arg, scale.parse::<usize>().unwrap_or(1));
+                        SCREEN
+                            .lock()
+                            .draw_char_scale(0x20, scale.parse::<usize>().unwrap_or(1));
                     }
-                    SCREEN.lock().draw_char_scale(0x0d, scale.parse::<usize>().unwrap_or(1));
+                    SCREEN
+                        .lock()
+                        .draw_char_scale(0x0d, scale.parse::<usize>().unwrap_or(1));
                 }
-            },
-            "reboot" => {
-                unsafe {
-                    let watchdog_register: &mut WriteVolatile<u32> = &mut *(ARM_POWER_MANAGEMENT_WDOG as *mut WriteVolatile<u32>);
-                    let reset_register: &mut WriteVolatile<u32> = &mut *(ARM_POWER_MANAGEMENT_RSTC as *mut WriteVolatile<u32>);
-                    watchdog_register.write(ARM_POWER_MANAGEMENT_PASSWD | 1);
-                    reset_register.write(ARM_POWER_MANAGEMENT_PASSWD | ARM_POWER_MANAGEMENT_FULL_RESET);
-                }
+            }
+            "reboot" => unsafe {
+                let watchdog_register: &mut WriteVolatile<u32> =
+                    &mut *(ARM_POWER_MANAGEMENT_WDOG as *mut WriteVolatile<u32>);
+                let reset_register: &mut WriteVolatile<u32> =
+                    &mut *(ARM_POWER_MANAGEMENT_RSTC as *mut WriteVolatile<u32>);
+                watchdog_register.write(ARM_POWER_MANAGEMENT_PASSWD | 1);
+                reset_register.write(ARM_POWER_MANAGEMENT_PASSWD | ARM_POWER_MANAGEMENT_FULL_RESET);
             },
             "help" => unsafe {
                 asm!("br $0" : : "r"(BOOTLOADER_START_ADDR as usize));
             },
-            _ => { kprintln!("unknown command: {}", self.path()); }
+            _ => {
+                kprintln!("unknown command: {}", self.path());
+            }
         }
     }
 }
@@ -161,7 +177,8 @@ pub fn shell(prefix: &str) -> ! {
             if buffer.is_full() {
                 continue;
             }
-            if byte == 8 || byte == 127 { // backspace
+            if byte == 8 || byte == 127 {
+                // backspace
                 if !buffer.is_empty() {
                     kprint!("{} {}", byte as char, byte as char);
                     buffer.pop();
@@ -174,9 +191,13 @@ pub fn shell(prefix: &str) -> ! {
 
         kprintln!("");
         if let Ok(s) = str::from_utf8(&buffer.as_slice()) {
-            match Command::parse(s, &mut {parsed_cmd}) {
-                Ok(cmd) => { cmd.process(); },
-                Err(Error::TooManyArgs) => { kprintln!("error: too many arguments"); },
+            match Command::parse(s, &mut { parsed_cmd }) {
+                Ok(cmd) => {
+                    cmd.process();
+                }
+                Err(Error::TooManyArgs) => {
+                    kprintln!("error: too many arguments");
+                }
                 Err(Error::Empty) => {}
             };
         } else {

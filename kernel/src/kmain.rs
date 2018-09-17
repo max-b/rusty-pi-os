@@ -17,19 +17,19 @@
 #[macro_use]
 #[allow(unused_imports)]
 extern crate alloc;
+extern crate fat32;
 extern crate pi;
 extern crate stack_vec;
-extern crate fat32;
 extern crate volatile;
 
+pub mod draw;
+pub mod fs;
 pub mod lang_items;
 pub mod shell;
-pub mod fs;
-pub mod draw;
 
-use pi::timer;
-use pi::console::{kprintln};
+use pi::console::kprintln;
 use pi::raccoon::RACCOON_STRING;
+use pi::timer;
 use shell::shell;
 
 #[cfg(not(test))]
@@ -46,7 +46,6 @@ pub static FILE_SYSTEM: FileSystem = FileSystem::uninitialized();
 #[no_mangle]
 #[cfg(not(test))]
 pub unsafe extern "C" fn kmain() {
-
     timer::spin_sleep_ms(1000);
 
     kprintln!("{}", RACCOON_STRING);

@@ -9,11 +9,11 @@ extern crate xmodem;
 
 pub mod lang_items;
 
-use xmodem::{Xmodem, Progress};
-use pi::uart::MiniUart;
-use pi::timer::spin_sleep_ms;
-use pi::console::*;
 use pi::allocator::Allocator;
+use pi::console::*;
+use pi::timer::spin_sleep_ms;
+use pi::uart::MiniUart;
+use xmodem::{Progress, Xmodem};
 
 #[cfg(not(test))]
 #[global_allocator]
@@ -35,12 +35,13 @@ fn jump_to(addr: *mut u8) -> ! {
     unsafe {
         kprintln!("Contents of jump: {:x?}", *addr);
         asm!("br $0" : : "r"(addr as usize));
-        loop { asm!("nop" :::: "volatile")  }
+        loop {
+            asm!("nop" :::: "volatile")
+        }
     }
 }
 
-pub fn progress_fn(_progress: Progress) {
-}
+pub fn progress_fn(_progress: Progress) {}
 
 #[no_mangle]
 pub unsafe extern "C" fn kmain() {
@@ -53,23 +54,42 @@ pub unsafe extern "C" fn kmain() {
 
     kprintln!("Starting Bootloader");
     kprintln!("buffer size = {}", buffer.len());
-    kprintln!("first few bytes of buffer = {:x},{:x},{:x},{:x},{:x},", buffer[0], buffer[1], buffer[2], buffer[3], buffer[4]);
+    kprintln!(
+        "first few bytes of buffer = {:x},{:x},{:x},{:x},{:x},",
+        buffer[0],
+        buffer[1],
+        buffer[2],
+        buffer[3],
+        buffer[4]
+    );
     buffer[0] = 0xde;
     buffer[1] = 0xad;
     buffer[2] = 0xbe;
     buffer[3] = 0xef;
-    kprintln!("first few bytes of buffer = {:x},{:x},{:x},{:x},{:x},", buffer[0], buffer[1], buffer[2], buffer[3], buffer[4]);
+    kprintln!(
+        "first few bytes of buffer = {:x},{:x},{:x},{:x},{:x},",
+        buffer[0],
+        buffer[1],
+        buffer[2],
+        buffer[3],
+        buffer[4]
+    );
     kprintln!("Send file now...");
     loop {
         match Xmodem::receive_with_progress(&mut uart, &mut buffer, progress_fn) {
-            Ok(num_bytes) => {
-                loop {
-                    spin_sleep_ms(5000);
-                    kprintln!("Recieved binary of size {}, now jumping...", num_bytes);
-                    kprintln!("Jumping to {:x}", BINARY_START_ADDR);
-                    kprintln!("first few bytes of buffer = {:x},{:x},{:x},{:x},{:x},", buffer[0], buffer[1], buffer[2], buffer[3], buffer[4]);
-                    jump_to(BINARY_START);
-                }
+            Ok(num_bytes) => loop {
+                spin_sleep_ms(5000);
+                kprintln!("Recieved binary of size {}, now jumping...", num_bytes);
+                kprintln!("Jumping to {:x}", BINARY_START_ADDR);
+                kprintln!(
+                    "first few bytes of buffer = {:x},{:x},{:x},{:x},{:x},",
+                    buffer[0],
+                    buffer[1],
+                    buffer[2],
+                    buffer[3],
+                    buffer[4]
+                );
+                jump_to(BINARY_START);
             },
             Err(err) => {
                 kprintln!("error receiving: {:?}", err);

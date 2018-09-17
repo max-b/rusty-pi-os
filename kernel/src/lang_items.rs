@@ -6,13 +6,16 @@ use std::alloc::Layout;
 
 use lang_items::core::panic::PanicInfo;
 
-#[lang = "eh_personality"] #[cfg(not(test))] pub extern fn eh_personality() {}
+#[lang = "eh_personality"]
+#[cfg(not(test))]
+pub extern "C" fn eh_personality() {}
 
 #[panic_handler]
 #[cfg(not(test))]
 #[no_mangle]
-pub extern fn panic_fmt(panic_info: &PanicInfo) -> ! {
-    kprintln!("
+pub extern "C" fn panic_fmt(panic_info: &PanicInfo) -> ! {
+    kprintln!(
+        "
          )   (     (
         (    )     )
          )   (    (
@@ -24,17 +27,21 @@ pub extern fn panic_fmt(panic_info: &PanicInfo) -> ! {
 
   🥧  The pi is overdone 🥧🥧
 
-😱---------- PANIC ----------😱");
+😱---------- PANIC ----------😱"
+    );
     kprintln!("{:?}", &panic_info.payload());
 
     if let Some(location) = panic_info.location() {
-        kprintln!("panic occurred in file '{}' at line {}", location.file(),
-            location.line());
+        kprintln!(
+            "panic occurred in file '{}' at line {}",
+            location.file(),
+            location.line()
+        );
     } else {
         kprintln!("panic occurred but can't get location information...");
     }
 
-    loop{}
+    loop {}
 }
 
 #[cfg(not(test))]
@@ -43,5 +50,5 @@ pub extern fn panic_fmt(panic_info: &PanicInfo) -> ! {
 pub fn rust_oom(layout: Layout) -> ! {
     kprintln!("Out of Memory 😮");
     kprintln!("{:#?}", &layout);
-    loop{}
+    loop {}
 }

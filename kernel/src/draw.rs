@@ -1,6 +1,6 @@
-use pi::framebuffer::{Pixel};
+use pi::console::CONSOLE;
+use pi::framebuffer::Pixel;
 use pi::screen::SCREEN;
-use pi::console::{CONSOLE};
 
 /// Starts a draw mode
 pub fn draw_loop() {
@@ -12,11 +12,10 @@ pub fn draw_loop() {
             console.read_byte()
         };
 
-
         if byte == 0x1b {
             SCREEN.lock().inner().clear();
         }
-        
+
         if byte == 0x60 {
             break;
         }

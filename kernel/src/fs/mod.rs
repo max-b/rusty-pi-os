@@ -3,11 +3,11 @@ pub mod sd;
 use std::io;
 use std::path::Path;
 
-use fat32::vfat::{self, Shared, VFat};
 pub use fat32::traits;
+use fat32::vfat::{self, Shared, VFat};
 
-use pi::mutex::Mutex;
 use self::sd::Sd;
+use pi::mutex::Mutex;
 
 pub struct FileSystem(Mutex<Option<Shared<VFat>>>);
 
@@ -26,12 +26,14 @@ impl FileSystem {
     ///
     /// Panics if the underlying disk or file sytem failed to initialize.
     pub fn initialize(&self) {
-        *self.0.lock() = Some(VFat::from(Sd::new().expect("Sd failed to initialize")).expect("VFat failed to initalize from Sd"));
+        *self.0.lock() = Some(
+            VFat::from(Sd::new().expect("Sd failed to initialize"))
+                .expect("VFat failed to initalize from Sd"),
+        );
     }
 }
 
 impl traits::FileSystem for FileSystem {
-
     type File = vfat::File;
     type Dir = vfat::Dir;
     type Entry = vfat::Entry;

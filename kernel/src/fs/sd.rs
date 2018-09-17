@@ -1,7 +1,7 @@
-use std::io;
-use pi::timer;
-use pi::mutex::Mutex;
 use fat32::traits::BlockDevice;
+use pi::mutex::Mutex;
+use pi::timer;
+use std::io;
 
 extern "C" {
     /// A global representing the last SD controller error that occured.
@@ -72,7 +72,10 @@ impl BlockDevice for Sd {
     /// An error of kind `Other` is returned for all other errors.
     fn read_sector(&mut self, n: u64, buf: &mut [u8]) -> io::Result<usize> {
         if buf.len() < 512 || n > (1 << 32) - 1 {
-            return Err(io::Error::new(io::ErrorKind::InvalidInput, "buf.len() or n is out of bounds"));
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidInput,
+                "buf.len() or n is out of bounds",
+            ));
         }
 
         let ret = unsafe { sd_readsector(n as i32, buf as *mut [u8] as *mut u8) };
@@ -81,9 +84,18 @@ impl BlockDevice for Sd {
             Ok(ret as usize)
         } else {
             match **SD_ERR.lock() {
-                _ if ret == -1 => Err(io::Error::new(io::ErrorKind::TimedOut, "timed out in read_sector")),
-                _ if ret == -2 => Err(io::Error::new(io::ErrorKind::Other, "error sending commands to the sd controller")),
-                _ => Err(io::Error::new(io::ErrorKind::Other, "unknown error in read_sector")),
+                _ if ret == -1 => Err(io::Error::new(
+                    io::ErrorKind::TimedOut,
+                    "timed out in read_sector",
+                )),
+                _ if ret == -2 => Err(io::Error::new(
+                    io::ErrorKind::Other,
+                    "error sending commands to the sd controller",
+                )),
+                _ => Err(io::Error::new(
+                    io::ErrorKind::Other,
+                    "unknown error in read_sector",
+                )),
             }
         }
     }
