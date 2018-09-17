@@ -1,6 +1,6 @@
 use std::collections::VecDeque;
 
-use mutex::Mutex;
+use pi::mutex::Mutex;
 use process::{Process, State, Id};
 use traps::TrapFrame;
 

@@ -13,12 +13,7 @@
 #![feature(alloc, allocator_api)]
 #![feature(alloc_error_handler)]
 #![feature(panic_info_message)]
-#![feature(i128_type)]
-#![feature(never_type)]
-#![feature(unique)]
-#![feature(pointer_methods)]
 #![feature(naked_functions)]
-#![feature(fn_must_use)]
 
 #[macro_use]
 #[allow(unused_imports)]

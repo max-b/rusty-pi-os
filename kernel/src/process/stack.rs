@@ -1,8 +1,9 @@
 use std::fmt;
 use std::ptr::Unique;
+use std::alloc::GlobalAlloc;
 
 use ALLOCATOR;
-use alloc::allocator::{Alloc, Layout};
+use std::alloc::{Alloc, Layout};
 use vm::PhysicalAddr;
 
 /// A process stack. The default size is 1M1B with an alignment of 16 bytes.
@@ -27,7 +28,7 @@ impl Stack {
     /// fails for some other reason, returns `None`.
     pub fn new() -> Option<Stack> {
         let raw_ptr = unsafe {
-            let raw_ptr: *mut u8 = (&ALLOCATOR).alloc(Stack::layout()).ok()?;
+            let raw_ptr: *mut u8 = (&ALLOCATOR).alloc(Stack::layout());
             raw_ptr.write_bytes(0, Self::SIZE);
             raw_ptr
         };
