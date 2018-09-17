@@ -62,6 +62,10 @@ pub unsafe extern "C" fn kmain() {
         kprintln!("{:#?}", tag);
     }
 
+    let el = aarch64::current_el();
+
+    kprintln!("running in el {}", el);
+
     ALLOCATOR.initialize();
     FILE_SYSTEM.initialize();
 
