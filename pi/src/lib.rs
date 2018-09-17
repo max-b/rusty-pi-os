@@ -39,3 +39,4 @@ pub mod raccoon;
 mod character_set;
 pub mod console;
 pub mod atags;
+pub mod interrupt;

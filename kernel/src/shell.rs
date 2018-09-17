@@ -153,9 +153,10 @@ impl<'a> Command<'a> {
         }
     }
 }
+
 /// Starts a shell using `prefix` as the prefix for each line. This function
-/// never returns: it is perpetually in a shell loop.
-pub fn shell(prefix: &str) -> ! {
+/// returns if the `exit` command is called.
+pub fn shell(prefix: &str) {
     let mut raw_buffer = [0u8; 512];
     let mut buffer = StackVec::new(&mut raw_buffer);
     let parsed_cmd: [&str; 64] = [""; 64];

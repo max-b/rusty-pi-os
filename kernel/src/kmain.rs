@@ -13,6 +13,12 @@
 #![feature(alloc, allocator_api)]
 #![feature(alloc_error_handler)]
 #![feature(panic_info_message)]
+#![feature(i128_type)]
+#![feature(never_type)]
+#![feature(unique)]
+#![feature(pointer_methods)]
+#![feature(naked_functions)]
+#![feature(fn_must_use)]
 
 #[macro_use]
 #[allow(unused_imports)]
@@ -26,6 +32,10 @@ pub mod draw;
 pub mod fs;
 pub mod lang_items;
 pub mod shell;
+pub mod traps;
+pub mod aarch64;
+pub mod process;
+pub mod vm;
 
 use pi::console::kprintln;
 use pi::raccoon::RACCOON_STRING;
@@ -36,12 +46,15 @@ use shell::shell;
 use pi::allocator::Allocator;
 
 use fs::FileSystem;
+use process::GlobalScheduler;
 
 #[cfg(not(test))]
 #[global_allocator]
 pub static ALLOCATOR: Allocator = Allocator::uninitialized();
 
 pub static FILE_SYSTEM: FileSystem = FileSystem::uninitialized();
+
+pub static SCHEDULER: GlobalScheduler = GlobalScheduler::uninitialized();
 
 #[no_mangle]
 #[cfg(not(test))]
