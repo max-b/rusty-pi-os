@@ -1,8 +1,5 @@
-use std::io;
-use std::fmt;
-
 use framebuffer::{Color, Position, Pixel, Framebuffer};
-use character_set::{TELETEXT, ascii_to_glyph};
+use character_set::{ascii_to_glyph};
 use mutex::Mutex;
 
 /// A global singleton allowing read/write access to the screen.
@@ -139,21 +136,17 @@ impl Screen {
     }
 
     pub fn hsl_to_rgb(h: f32, s: f32, l: f32) -> Color {
-        let mut r = 0f32;
-        let mut g = 0f32;
-        let mut b = 0f32;
-
-        if (s == 0f32) {
-            r = l;
-            g = l;
-            b = l; // achromatic
+        let (r, g, b) = if s == 0f32 {
+            (l, l, l)
         } else {
             let q: f32 = if l < 0.5f32 { l * (1f32 + s) } else { l + s - l * s };
             let p: f32 = 2f32 * l - q;
-            r = Screen::hue_to_rgb(p, q, h + 1f32/3f32);
-            g = Screen::hue_to_rgb(p, q, h);
-            b = Screen::hue_to_rgb(p, q, h - 1f32/3f32);
-        }
+            (
+                Screen::hue_to_rgb(p, q, h + 1f32/3f32),
+                Screen::hue_to_rgb(p, q, h),
+                Screen::hue_to_rgb(p, q, h - 1f32/3f32),
+            )
+        };
 
         Color {
             red: (r * 255f32) as u8,
@@ -163,37 +156,21 @@ impl Screen {
     }
 
     pub fn hue_to_rgb(p: f32, q: f32, mut t: f32) -> f32 {
-        if (t < 0f32) {
+        if t < 0f32 {
             t += 1f32;
         }
-        if (t > 1f32) {
+        if t > 1f32 {
             t -= 1f32;
         }
-        if (t < 1f32 / 6f32) {
+        if t < 1f32 / 6f32 {
             return p + (q - p) * 6f32 * t;
         }
-        if (t < 1f32 / 2f32) {
+        if t < 1f32 / 2f32 {
             return q;
         }
-        if (t < 2f32 / 3f32) {
+        if t < 2f32 / 3f32 {
             return p + (q - p) * (2f32 /3f32 - t) * 6f32;
         }
         return p;
     }
 }
-
-// impl io::Write for Screen {
-//     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
-//         self.inner().write_str(buf)
-//     }
-
-//     fn flush(&mut self) -> io::Result<()> {
-//         Ok(())
-//     }
-// }
-
-// impl fmt::Write for Screen {
-//     fn write_str(&mut self, s: &str) -> fmt::Result {
-//         self.inner().write_str(s)
-//     }
-// }

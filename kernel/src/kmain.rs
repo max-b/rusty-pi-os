@@ -27,13 +27,10 @@ pub mod shell;
 pub mod fs;
 pub mod draw;
 
-use pi::gpio::Gpio;
 use pi::timer;
-use pi::console::{CONSOLE, kprint, kprintln};
-use pi::screen::SCREEN;
+use pi::console::{kprintln};
 use pi::raccoon::RACCOON_STRING;
 use shell::shell;
-use fat32::traits::{self, Entry, Dir};
 
 #[cfg(not(test))]
 use pi::allocator::Allocator;
@@ -50,15 +47,7 @@ pub static FILE_SYSTEM: FileSystem = FileSystem::uninitialized();
 #[cfg(not(test))]
 pub unsafe extern "C" fn kmain() {
 
-    let mut pin_16 = Gpio::new(16).into_output();
-    let mut pin_20 = Gpio::new(20).into_output();
-    let mut pin_21 = Gpio::new(21).into_output();
-
-    let mut pin_16_on = false;
-    let mut pin_20_on = false;
-    let mut pin_21_on = false;
-
-    timer::spin_sleep_ms(2000);
+    timer::spin_sleep_ms(1000);
 
     kprintln!("{}", RACCOON_STRING);
 

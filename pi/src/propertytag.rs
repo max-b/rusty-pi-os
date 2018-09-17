@@ -284,7 +284,7 @@ pub fn send_tags<'a>(tags: &'a mut StackVec<'a, PropertyTag>) -> &'a mut StackVe
     while bytes_read < buffer_size as usize {
         let tag = PropertyTag::from_bytes(&tag_buffer.buffer[bytes_read..]);
         kprintln!("Received tag: {:x?}", &tag);
-        tags.push(tag);
+        tags.push(tag).expect("error pushing tag to stackvec");
         bytes_read += tag.length();
     }
 

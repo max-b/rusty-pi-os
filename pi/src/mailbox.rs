@@ -68,7 +68,6 @@ struct Registers {
     MAIL0_WRITE: WriteVolatile<u32>,
 }
 
-
 pub struct Mailbox {
     channel: Channel,
     registers: &'static mut Registers,

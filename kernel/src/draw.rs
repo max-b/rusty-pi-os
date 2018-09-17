@@ -1,6 +1,6 @@
-use pi::framebuffer::{Framebuffer, Pixel};
+use pi::framebuffer::{Pixel};
 use pi::screen::SCREEN;
-use pi::console::{kprint, kprintln, CONSOLE};
+use pi::console::{CONSOLE};
 
 /// Starts a draw mode
 pub fn draw_loop() {

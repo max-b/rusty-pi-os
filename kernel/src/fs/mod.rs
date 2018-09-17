@@ -42,17 +42,17 @@ impl traits::FileSystem for FileSystem {
         }
         self.0.lock().as_ref().unwrap().open(path)
     }
-    fn create_file<P: AsRef<Path>>(self, path: P) -> io::Result<Self::File> {
+    fn create_file<P: AsRef<Path>>(self, _path: P) -> io::Result<Self::File> {
         unimplemented!("read only raspberry")
     }
-    fn create_dir<P: AsRef<Path>>(self, path: P, parents: bool) -> io::Result<Self::Dir> {
+    fn create_dir<P: AsRef<Path>>(self, _path: P, _parents: bool) -> io::Result<Self::Dir> {
         unimplemented!("read only raspberry")
     }
-    fn rename<P: AsRef<Path>, Q: AsRef<Path>>(self, from: P, to: Q) -> io::Result<()> {
+    fn rename<P: AsRef<Path>, Q: AsRef<Path>>(self, _from: P, _to: Q) -> io::Result<()> {
         unimplemented!("read only raspberry")
     }
 
-    fn remove<P: AsRef<Path>>(self, path: P, children: bool) -> io::Result<()> {
+    fn remove<P: AsRef<Path>>(self, _path: P, _children: bool) -> io::Result<()> {
         unimplemented!("read only raspberry")
     }
 }

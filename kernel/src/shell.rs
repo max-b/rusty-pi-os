@@ -77,11 +77,17 @@ impl<'a> Command<'a> {
                     match traits::FileSystem::open_file(&FILE_SYSTEM, arg) {
                         Ok(mut file) => {
                             let mut buf = vec![0; 100];
-                            file.read(&mut buf[..]);
-                            SCREEN.lock().draw_string(&file.metadata.name);
-                            SCREEN.lock().draw_char(0x0d);
-                            SCREEN.lock().draw_string(&String::from_utf8_lossy(&buf[..]));
-                            SCREEN.lock().draw_char(0x0d);
+                            match file.read(&mut buf[..]) {
+                                Ok(_bytes_read) => {
+                                    SCREEN.lock().draw_string(&file.metadata.name);
+                                    SCREEN.lock().draw_char(0x0d);
+                                    SCREEN.lock().draw_string(&String::from_utf8_lossy(&buf[..]));
+                                    SCREEN.lock().draw_char(0x0d);
+                                },
+                                Err(error) => {
+                                    kprintln!("Error reading file {}: {:#?}", &file.metadata.name, error);
+                                }
+                            }
                         },
                         Err(_) => {}
                     }
@@ -118,8 +124,8 @@ impl<'a> Command<'a> {
             },
             "reboot" => {
                 unsafe {
-                    let mut watchdog_register: &mut WriteVolatile<u32> = &mut *(ARM_POWER_MANAGEMENT_WDOG as *mut WriteVolatile<u32>);
-                    let mut reset_register: &mut WriteVolatile<u32> = &mut *(ARM_POWER_MANAGEMENT_RSTC as *mut WriteVolatile<u32>);
+                    let watchdog_register: &mut WriteVolatile<u32> = &mut *(ARM_POWER_MANAGEMENT_WDOG as *mut WriteVolatile<u32>);
+                    let reset_register: &mut WriteVolatile<u32> = &mut *(ARM_POWER_MANAGEMENT_RSTC as *mut WriteVolatile<u32>);
                     watchdog_register.write(ARM_POWER_MANAGEMENT_PASSWD | 1);
                     reset_register.write(ARM_POWER_MANAGEMENT_PASSWD | ARM_POWER_MANAGEMENT_FULL_RESET);
                 }
