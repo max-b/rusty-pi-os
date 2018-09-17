@@ -5,8 +5,11 @@ mod syscall;
 
 use pi::interrupt::{Controller, Interrupt};
 
+use shell::shell;
+
 pub use self::trap_frame::TrapFrame;
 
+use aarch64;
 use pi::console::kprintln;
 use self::syndrome::Syndrome;
 use self::irq::handle_irq;
@@ -43,5 +46,23 @@ pub struct Info {
 /// the trap frame for the exception.
 #[no_mangle]
 pub extern fn handle_exception(info: Info, esr: u32, tf: &mut TrapFrame) {
-    unimplemented!("handle_exception")
+    kprintln!("info: {:#?}", info);
+    kprintln!("esr: {:#x?}", esr);
+    kprintln!("tf: {:#?}", tf);
+
+    let syndrome = Syndrome::from(esr);
+
+    kprintln!("syndrome = {:#x?}", syndrome);
+    if let Syndrome::Brk(break_num) = syndrome {
+        kprintln!("entering break num: {:x}", break_num);
+        shell("$!> ");
+        shell(&format!("{} $!> ", break_num));
+    } else if let Syndrome::Breakpoint = syndrome {
+        kprintln!("entering breakpoint");
+        shell("$!> ");
+    }
+
+    loop {
+        aarch64::nop();
+    }
 }

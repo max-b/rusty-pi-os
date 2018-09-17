@@ -75,7 +75,8 @@ switch_to_el1:
     msr     SCTLR_EL1, x2
 
     // set up exception handlers
-    // FIXME: load `_vectors` addr into appropriate register (guide: 10.4)
+    adr     x7, _vectors
+    msr     VBAR_EL1, x7
 
     // change execution level to EL1 (ref: C5.2.19)
     mov     x2, #0x3c5
@@ -106,7 +107,17 @@ go_kmain:
     b       halt
 
 context_save:
-    // FIXME: Save the remaining context to the stack.
+    // r0/x0 holds `Info`
+    // r1/x1 needs to hold esr
+    // r2/x2 needs to hold tf
+    // x9-x15 are caller saved
+    mrs     x1, ESR_EL1
+    mov     x2, #0
+    stp     x9, x10, [SP, #-16]!
+    stp     x11, x12, [SP, #-16]!
+    stp     x13, x14, [SP, #-16]!
+    stp     x15, x30, [SP, #-16]!
+    bl      handle_exception
 
 .global context_restore
 context_restore:
@@ -116,13 +127,61 @@ context_restore:
 
 #define HANDLER(source, kind) \
     .align 7; \
-    stp     lr, x0, [SP, #-16]!; \
+    stp     x30, x0, [SP, #-16]!; \
     mov     x0, ##source; \
     movk    x0, ##kind, LSL #16; \
     bl      context_save; \
-    ldp     lr, x0, [SP], #16; \
+    ldp     x30, x0, [SP], #16; \
     eret
 
 .align 11
 _vectors:
-    // FIXME: Setup the 16 exception vectors.
+    // From Armv8 - A Programmer Guide 10.4
+
+    // Source = CurrentSpEl0; Kind = Synchronous
+    HANDLER(0x0000, 0x0000)
+
+    // Source = CurrentSpEl0; Kind = IRQ
+    HANDLER(0x0000, 0x0001)
+
+    // Source = CurrentSpEl0; Kind = FIQ
+    HANDLER(0x0000, 0x0010)
+
+    // Source = CurrentSpEl0; Kind = SError
+    HANDLER(0x0000, 0x0011)
+
+    // Source = CurrentSpElx; Kind = Synchronous
+    HANDLER(0x0001, 0x0000)
+
+    // Source = CurrentSpElx; Kind = IRQ
+    HANDLER(0x0001, 0x0001)
+
+    // Source = CurrentSpElx; Kind = FIQ
+    HANDLER(0x0001, 0x0010)
+
+    // Source = CurrentSpElx; Kind = SError
+    HANDLER(0x0001, 0x0011)
+
+    // Source = LowerAArch64; Kind = Synchronous
+    HANDLER(0x0010, 0x0000)
+
+    // Source = LowerAArch64; Kind = IRQ
+    HANDLER(0x0010, 0x0001)
+
+    // Source = LowerAArch64; Kind = FIQ
+    HANDLER(0x0010, 0x0010)
+
+    // Source = LowerAArch64; Kind = SError
+    HANDLER(0x0010, 0x0011)
+
+    // Source = LowerAArch32; Kind = Synchronous
+    HANDLER(0x0011, 0x0000)
+
+    // Source = LowerAArch32; Kind = IRQ
+    HANDLER(0x0011, 0x0001)
+
+    // Source = LowerAArch32; Kind = FIQ
+    HANDLER(0x0011, 0x0010)
+
+    // Source = LowerAArch32; Kind = SError
+    HANDLER(0x0011, 0x0011)

@@ -55,7 +55,7 @@ impl<'a> Command<'a> {
         self.args[0]
     }
 
-    fn process(&self) {
+    fn process(&self) -> bool {
         match self.path() {
             "echo" => {
                 let mut iter = self.args.iter();
@@ -144,13 +144,17 @@ impl<'a> Command<'a> {
                 watchdog_register.write(ARM_POWER_MANAGEMENT_PASSWD | 1);
                 reset_register.write(ARM_POWER_MANAGEMENT_PASSWD | ARM_POWER_MANAGEMENT_FULL_RESET);
             },
+            "exit" => {
+                return true;
+            },
             "help" => unsafe {
                 asm!("br $0" : : "r"(BOOTLOADER_START_ADDR as usize));
             },
             _ => {
                 kprintln!("unknown command: {}", self.path());
             }
-        }
+        };
+        false
     }
 }
 
@@ -164,7 +168,9 @@ pub fn shell(prefix: &str) {
     SCREEN.lock().clear();
     SCREEN.lock().draw_string_scale(&"WELCOME TO MaxOS,5", 5);
     SCREEN.lock().draw_char_scale(0x0d, 5);
-    loop {
+
+    let mut finished = false;
+    while !finished {
         kprint!("{}", prefix);
 
         // read until a full command (+ newline) has been written
@@ -194,7 +200,7 @@ pub fn shell(prefix: &str) {
         if let Ok(s) = str::from_utf8(&buffer.as_slice()) {
             match Command::parse(s, &mut { parsed_cmd }) {
                 Ok(cmd) => {
-                    cmd.process();
+                    finished = cmd.process();
                 }
                 Err(Error::TooManyArgs) => {
                     kprintln!("error: too many arguments");

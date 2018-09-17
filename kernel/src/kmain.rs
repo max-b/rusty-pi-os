@@ -63,8 +63,9 @@ pub unsafe extern "C" fn kmain() {
     }
 
     let el = aarch64::current_el();
-
     kprintln!("running in el {}", el);
+
+    unsafe { asm!("brk 2" :::: "volatile"); }
 
     ALLOCATOR.initialize();
     FILE_SYSTEM.initialize();
