@@ -2,6 +2,7 @@ extern crate core;
 extern crate std;
 
 use pi::console::kprintln;
+use pi::screen::SCREEN;
 use std::alloc::Layout;
 
 use lang_items::core::panic::PanicInfo;
@@ -10,12 +11,7 @@ use lang_items::core::panic::PanicInfo;
 #[cfg(not(test))]
 pub extern "C" fn eh_personality() {}
 
-#[panic_handler]
-#[cfg(not(test))]
-#[no_mangle]
-pub extern "C" fn panic_fmt(panic_info: &PanicInfo) -> ! {
-    kprintln!(
-        "
+pub const OVERDONE_STRING: &str = "
          )   (     (
         (    )     )
          )   (    (
@@ -27,8 +23,14 @@ pub extern "C" fn panic_fmt(panic_info: &PanicInfo) -> ! {
 
   🥧  The pi is overdone 🥧🥧
 
-😱---------- PANIC ----------😱"
-    );
+😱---------- PANIC ----------😱";
+
+#[panic_handler]
+#[cfg(not(test))]
+#[no_mangle]
+pub extern "C" fn panic_fmt(panic_info: &PanicInfo) -> ! {
+
+    kprintln!("{}", OVERDONE_STRING);
     kprintln!("{:?}", &panic_info.payload());
 
     if let Some(location) = panic_info.location() {
@@ -41,6 +43,8 @@ pub extern "C" fn panic_fmt(panic_info: &PanicInfo) -> ! {
         kprintln!("panic occurred but can't get location information...");
     }
 
+    SCREEN.lock().draw_string(&OVERDONE_STRING);
+    SCREEN.lock().draw_char(0x0d);
     loop {}
 }
 
