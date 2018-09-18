@@ -123,14 +123,18 @@ impl<'a> Command<'a> {
                 let mut iter = self.args.iter();
                 iter.next();
                 if let Some(scale) = iter.next() {
-                    for arg in iter {
-                        SCREEN
-                            .lock()
-                            .draw_string_scale(&arg, scale.parse::<usize>().unwrap_or(1));
-                        SCREEN
-                            .lock()
-                            .draw_char_scale(0x20, scale.parse::<usize>().unwrap_or(1));
-                    }
+
+                    let message: String = iter
+                        .fold(String::from(""), |mut acc, arg| {
+                            acc.push_str(&arg);
+                            acc.push_str(" ");
+                            acc
+                        });
+
+                    SCREEN
+                        .lock()
+                        .draw_string_scale(&message, scale.parse::<usize>().unwrap_or(1));
+
                     SCREEN
                         .lock()
                         .draw_char_scale(0x0d, scale.parse::<usize>().unwrap_or(1));
