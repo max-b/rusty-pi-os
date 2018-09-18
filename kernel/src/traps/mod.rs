@@ -46,22 +46,24 @@ pub struct Info {
 /// the trap frame for the exception.
 #[no_mangle]
 pub extern fn handle_exception(info: Info, esr: u32, tf: &mut TrapFrame) {
-    kprintln!("info: {:#?}", info);
+    kprintln!("info: {:#x?}", info);
     kprintln!("esr: {:#x?}", esr);
-    kprintln!("tf: {:#?}", tf);
+    kprintln!("tf: {:#x?}", tf);
 
     let syndrome = Syndrome::from(esr);
 
     kprintln!("syndrome = {:#x?}", syndrome);
     if let Syndrome::Brk(break_num) = syndrome {
-        kprintln!("entering break num: {:x}", break_num);
-        shell("$!> ");
         shell(&format!("{} $!> ", break_num));
+        tf.elr = tf.elr + 0x04;
+        return;
     } else if let Syndrome::Breakpoint = syndrome {
-        kprintln!("entering breakpoint");
         shell("$!> ");
+        tf.elr = tf.elr + 0x04; // TODO: same?
+        return;
     }
 
+    kprintln!("infinite looping 🛸");
     loop {
         aarch64::nop();
     }

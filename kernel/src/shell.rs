@@ -136,6 +136,9 @@ impl<'a> Command<'a> {
                         .draw_char_scale(0x0d, scale.parse::<usize>().unwrap_or(1));
                 }
             }
+            "break" => unsafe {
+                asm!("brk 2" :::: "volatile");
+            }
             "reboot" => unsafe {
                 let watchdog_register: &mut WriteVolatile<u32> =
                     &mut *(ARM_POWER_MANAGEMENT_WDOG as *mut WriteVolatile<u32>);

@@ -107,21 +107,169 @@ go_kmain:
     b       halt
 
 context_save:
+    sub     SP, SP, #8
+    str     x29, [SP, #-8]!
+
+    sub     SP, SP, #32
+    stp     x25, x26, [SP]
+    stp     x27, x28, [SP, #16]
+
+    sub     SP, SP, #32
+    stp     x21, x22, [SP]
+    stp     x23, x24, [SP, #16]
+
+    sub     SP, SP, #32
+    stp     x17, x18, [SP]
+    stp     x19, x20, [SP, #16]
+
+    sub     SP, SP, #32
+    stp     x13, x14, [SP]
+    stp     x15, x16, [SP, #16]
+
+    sub     SP, SP, #32
+    stp     x9, x10, [SP]
+    stp     x11, x12, [SP, #16]
+
+    sub     SP, SP, #32
+    stp     x5, x6, [SP]
+    stp     x7, x8, [SP, #16]
+
+    sub     SP, SP, #32
+    stp     x1, x2, [SP]
+    stp     x3, x4, [SP, #16]
+
+    sub     SP, SP, #32
+    stp     q30, q31, [SP]
+
+    sub     SP, SP, #64
+    stp     q26, q27, [SP]
+    stp     q28, q29, [SP, #32]
+
+    sub     SP, SP, #64
+    stp     q22, q23, [SP]
+    stp     q24, q25, [SP, #32]
+
+    sub     SP, SP, #64
+    stp     q18, q19, [SP]
+    stp     q20, q21, [SP, #32]
+
+    sub     SP, SP, #64
+    stp     q14, q15, [SP]
+    stp     q16, q17, [SP, #32]
+
+    sub     SP, SP, #64
+    stp     q10, q11, [SP]
+    stp     q12, q13, [SP, #32]
+
+    sub     SP, SP, #64
+    stp     q6, q7, [SP]
+    stp     q8, q9, [SP, #32]
+
+    sub     SP, SP, #64
+    stp     q2, q3, [SP]
+    stp     q4, q5, [SP, #32]
+
+    sub     SP, SP, #32
+    stp     q0, q1, [SP]
+
+    mrs     x4, TPIDR_EL0
+    mrs     x5, SP_EL0
+    mrs     x6, SPSR_EL1
+    mrs     x7, ELR_EL1
+
+    sub     SP, SP, #32
+    stp     x5, x4, [SP, #16]
+    stp     x7, x6, [SP]
+
     // r0/x0 holds `Info`
     // r1/x1 needs to hold esr
-    // r2/x2 needs to hold tf
-    // x9-x15 are caller saved
+    // r2/x2 needs to hold trap frame (what we've just pushed)
     mrs     x1, ESR_EL1
-    mov     x2, #0
-    stp     x9, x10, [SP, #-16]!
-    stp     x11, x12, [SP, #-16]!
-    stp     x13, x14, [SP, #-16]!
-    stp     x15, x30, [SP, #-16]!
+    mov     x2, SP
+
+    // by branch link jumping here we're going to
+    // clobber x30, so let's save that to the stack as well
+    str     x30, [SP, #-16]!
     bl      handle_exception
 
 .global context_restore
 context_restore:
-    // FIXME: Restore the context from the stack.
+
+    // first pop our saved x30/lr
+    ldr     x30, [SP], #16
+
+    ldp     x8, x9, [SP]
+    ldp     x10, x11, [SP, #16]
+    add     SP, SP, #32
+
+    msr     ELR_EL1, x8
+    msr     SPSR_EL1, x9
+
+    msr     SP_EL0, x10
+    msr     TPIDR_EL0, x11
+
+    ldp     q0, q1, [SP]
+    ldp     q2, q3, [SP, #32]
+    add     SP, SP, #64
+
+    ldp     q4, q5, [SP]
+    ldp     q6, q7, [SP, #32]
+    add     SP, SP, #64
+
+    ldp     q8, q9, [SP]
+    ldp     q10, q11, [SP, #32]
+    add     SP, SP, #64
+
+    ldp     q12, q13, [SP]
+    ldp     q14, q15, [SP, #32]
+    add     SP, SP, #64
+
+    ldp     q16, q17, [SP]
+    ldp     q18, q19, [SP, #32]
+    add     SP, SP, #64
+
+    ldp     q20, q21, [SP]
+    ldp     q22, q23, [SP, #32]
+    add     SP, SP, #64
+
+    ldp     q24, q25, [SP]
+    ldp     q26, q27, [SP, #32]
+    add     SP, SP, #64
+
+    ldp     q28, q29, [SP]
+    ldp     q30, q31, [SP, #32]
+    add     SP, SP, #64
+
+    ldp     x1, x2, [SP]
+    ldp     x3, x4, [SP, #16]
+    add     SP, SP, #32
+
+    ldp     x5, x6, [SP]
+    ldp     x7, x8, [SP, #16]
+    add     SP, SP, #32
+
+    ldp     x9, x10, [SP]
+    ldp     x11, x12, [SP, #16]
+    add     SP, SP, #32
+
+    ldp     x13, x14, [SP]
+    ldp     x15, x16, [SP, #16]
+    add     SP, SP, #32
+
+    ldp     x17, x18, [SP]
+    ldp     x19, x20, [SP, #16]
+    add     SP, SP, #32
+
+    ldp     x21, x22, [SP]
+    ldp     x23, x24, [SP, #16]
+    add     SP, SP, #32
+
+    ldp     x25, x26, [SP]
+    ldp     x27, x28, [SP, #16]
+    add     SP, SP, #32
+
+    ldr     x29, [SP]
+    add     SP, SP, #16
 
     ret
 
