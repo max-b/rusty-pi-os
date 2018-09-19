@@ -76,8 +76,13 @@ pub unsafe extern "C" fn kmain() {
     kprintln!("{:x?}", v);
 
     SCHEDULER.start();
+}
 
-    // loop {
-    //     shell(">>> ");
-    // }
+#[no_mangle]
+pub extern fn start_shell() {
+    shell("!>>> ");
+    unsafe { asm!("brk 1" :::: "volatile"); }
+    unsafe { asm!("brk 2" :::: "volatile"); }
+    unsafe { asm!("brk 3" :::: "volatile"); }
+    loop { shell(">>> "); }
 }

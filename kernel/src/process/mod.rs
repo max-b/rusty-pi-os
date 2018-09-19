@@ -5,5 +5,5 @@ mod stack;
 
 pub use self::process::{Process, Id};
 pub use self::state::State;
-pub use self::scheduler::{GlobalScheduler, _start_shell, TICK};
+pub use self::scheduler::{GlobalScheduler, TICK};
 pub use self::stack::Stack;
