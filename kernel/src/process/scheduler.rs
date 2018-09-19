@@ -1,11 +1,11 @@
 use std::collections::VecDeque;
 
-use aarch64;
 use pi::mutex::Mutex;
 use pi::console::kprintln;
-use process::{Process, Stack, State, Id};
+use pi::interrupt;
+use pi::timer;
+use process::{Process, State, Id};
 use traps::TrapFrame;
-use shell::shell;
 use start_shell;
 
 /// The `tick` time.
@@ -41,6 +41,11 @@ impl GlobalScheduler {
     /// using timer interrupt based preemptive scheduling. This method should
     /// not return under normal conditions.
     pub fn start(&self) {
+        let mut interrupt_controller = interrupt::Controller::new();
+        interrupt_controller.enable(interrupt::Interrupt::Timer1);
+
+        timer::tick_in(TICK);
+
         match Process::new() {
             Some(mut start_process) => {
                 start_process.trap_frame.elr = start_shell as *const u64 as u64;
@@ -48,8 +53,10 @@ impl GlobalScheduler {
 
                 start_process.trap_frame.tpidr = 0xcafebabe;
 
-                // All interrupts unmasked; el0, and aarch64
+                // All interrupts unmasked; el0; and aarch64
                 start_process.trap_frame.spsr = 0x00;
+
+                kprintln!("start_process = {:#x?}", start_process);
 
                 unsafe {
                     asm!("mov sp, $0"

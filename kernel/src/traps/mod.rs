@@ -46,21 +46,37 @@ pub struct Info {
 /// the trap frame for the exception.
 #[no_mangle]
 pub extern fn handle_exception(info: Info, esr: u32, tf: &mut TrapFrame) {
+    let syndrome = Syndrome::from(esr);
+    match info.kind {
+        Kind::Synchronous => {
+            kprintln!("info: {:#x?}", info);
+            kprintln!("esr: {:#x?}", esr);
+            kprintln!("syndrome = {:#x?}", syndrome);
+            kprintln!("tf: {:#x?}", tf);
+
+            if let Syndrome::Brk(break_num) = syndrome {
+                shell(&format!("{} $!> ", break_num));
+                tf.elr = tf.elr + 0x04;
+                return;
+            } else if let Syndrome::Breakpoint = syndrome {
+                shell("$!> ");
+                tf.elr = tf.elr + 0x04; // TODO: same?
+                return;
+            }
+        },
+        Kind::Irq => {
+            if let Some(int) = Controller::new().first_pending() {
+                handle_irq(int, tf);
+            }
+            return;
+        },
+        _ => {}
+    }
+
     kprintln!("info: {:#x?}", info);
     kprintln!("esr: {:#x?}", esr);
-    let syndrome = Syndrome::from(esr);
     kprintln!("syndrome = {:#x?}", syndrome);
     kprintln!("tf: {:#x?}", tf);
-
-    if let Syndrome::Brk(break_num) = syndrome {
-        shell(&format!("{} $!> ", break_num));
-        tf.elr = tf.elr + 0x04;
-        return;
-    } else if let Syndrome::Breakpoint = syndrome {
-        shell("$!> ");
-        tf.elr = tf.elr + 0x04; // TODO: same?
-        return;
-    }
 
     kprintln!("infinite looping 🛸");
     loop {
