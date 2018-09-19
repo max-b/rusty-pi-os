@@ -5,6 +5,7 @@ use process::{State, Stack};
 pub type Id = u64;
 
 /// A structure that represents the complete state of a process.
+#[repr(align(16))]
 #[derive(Debug)]
 pub struct Process {
     /// The saved trap frame of a process.
@@ -22,7 +23,14 @@ impl Process {
     /// If enough memory could not be allocated to start the process, returns
     /// `None`. Otherwise returns `Some` of the new `Process`.
     pub fn new() -> Option<Process> {
-        unimplemented!("Process::new()")
+        match Stack::new() {
+            Some(stack) => Some(Process {
+                stack,
+                state: State::Ready,
+                trap_frame: Default::default()
+            }),
+            None => None
+        }
     }
 
     /// Returns `true` if this process is ready to be scheduled.

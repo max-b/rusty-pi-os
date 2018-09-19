@@ -190,13 +190,14 @@ context_save:
     // by branch link jumping here we're going to
     // clobber x30, so let's save that to the stack as well
     str     x30, [SP, #-16]!
+
     bl      handle_exception
+
+    // pop our saved x30/lr
+    ldr     x30, [SP], #16
 
 .global context_restore
 context_restore:
-
-    // first pop our saved x30/lr
-    ldr     x30, [SP], #16
 
     ldp     x8, x9, [SP]
     ldp     x10, x11, [SP, #16]

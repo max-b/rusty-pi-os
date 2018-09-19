@@ -48,11 +48,10 @@ pub struct Info {
 pub extern fn handle_exception(info: Info, esr: u32, tf: &mut TrapFrame) {
     kprintln!("info: {:#x?}", info);
     kprintln!("esr: {:#x?}", esr);
+    let syndrome = Syndrome::from(esr);
+    kprintln!("syndrome = {:#x?}", syndrome);
     kprintln!("tf: {:#x?}", tf);
 
-    let syndrome = Syndrome::from(esr);
-
-    kprintln!("syndrome = {:#x?}", syndrome);
     if let Syndrome::Brk(break_num) = syndrome {
         shell(&format!("{} $!> ", break_num));
         tf.elr = tf.elr + 0x04;

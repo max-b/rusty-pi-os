@@ -75,7 +75,9 @@ pub unsafe extern "C" fn kmain() {
     kprintln!("allocated vec:");
     kprintln!("{:x?}", v);
 
-    loop {
-        shell(">>> ");
-    }
+    SCHEDULER.start();
+
+    // loop {
+    //     shell(">>> ");
+    // }
 }

@@ -1,8 +1,11 @@
 use std::collections::VecDeque;
 
+use aarch64;
 use pi::mutex::Mutex;
-use process::{Process, State, Id};
+use pi::console::kprintln;
+use process::{Process, Stack, State, Id};
 use traps::TrapFrame;
+use shell::shell;
 
 /// The `tick` time.
 // FIXME: When you're ready, change this to something more reasonable.
@@ -37,8 +40,70 @@ impl GlobalScheduler {
     /// using timer interrupt based preemptive scheduling. This method should
     /// not return under normal conditions.
     pub fn start(&self) {
-        unimplemented!("GlobalScheduler::start()")
+        match Process::new() {
+            Some(mut start_process) => {
+                start_process.trap_frame.elr = _start_shell as *const u64 as u64;
+                start_process.trap_frame.sp = start_process.stack.top().as_u64();
+
+                start_process.trap_frame.tpidr = 0xcafebabe;
+
+                // All interrupts unmasked; el0, and aarch64
+                start_process.trap_frame.spsr = 0x00;
+
+                kprintln!("start_process: {:#x?}", &start_process);
+
+                unsafe {
+                    // kprintln!("address of trap frame: 0x{:#x?}", &(*start_process.trap_frame) as *const TrapFrame as *const u64 as u64);
+
+                    // let sp = aarch64::sp();
+                    // kprintln!("current_stack = {:x}", sp as u64);
+
+                    asm!("mov sp, $0"
+                         :: "r"(&(*start_process.trap_frame))
+                         :: "volatile");
+
+                    // kprintln!("passes mov sp");
+
+                    asm!("bl context_restore" :: :: "volatile");
+
+//                     asm!("mov sp, $0"
+//                          :: "r"(current_stack)
+//                          :: "volatile");
+
+                    asm!("ldr x1, _start" :::: "volatile");
+                    asm!("mov sp, x1" :::: "volatile");
+                    asm!("mov x1, #0" :::: "volatile");
+
+                    asm!("eret" :::: "volatile");
+                }
+
+            },
+            None => {
+                kprintln!("Could not create start process! 🔥🎆🎆🔥");
+            }
+        }
     }
+}
+
+pub fn start_shell() {
+
+    kprintln!("random noise");
+    shell("!>>> ");
+
+    kprintln!("wtf even is the problem???");
+
+    // let sp_sel = aarch64::sp_sel();
+    // kprintln!("current_stack = {:x}", sp_sel);
+
+    unsafe { asm!("brk 1" :::: "volatile"); }
+    unsafe { asm!("brk 2" :::: "volatile"); }
+    unsafe { asm!("brk 3" :::: "volatile"); }
+    loop { shell("!>>> "); }
+}
+
+#[no_mangle]
+pub extern fn _start_shell() {
+    start_shell();
 }
 
 #[derive(Debug)]

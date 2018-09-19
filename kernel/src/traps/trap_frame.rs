@@ -1,4 +1,5 @@
 #[repr(C)]
+#[repr(align(16))]
 #[derive(Default, Debug, Copy, Clone)]
 pub struct TrapFrame {
     pub elr: u64,
