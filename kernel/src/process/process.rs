@@ -1,3 +1,4 @@
+use std::mem;
 use traps::TrapFrame;
 use process::{State, Stack};
 
@@ -48,6 +49,21 @@ impl Process {
     ///
     /// Returns `false` in all other cases.
     pub fn is_ready(&mut self) -> bool {
-        unimplemented!("Process::is_ready()")
+        let state_copy = State::Ready;
+        let mut owned_state = mem::replace(&mut self.state, state_copy);
+
+        let ready = match owned_state {
+            State::Ready => true,
+            State::Waiting(ref mut poll_function) => {
+                poll_function(self)
+            },
+            _ => false
+        };
+
+        if !ready {
+            mem::replace(&mut self.state, owned_state);
+        }
+
+        ready
     }
 }

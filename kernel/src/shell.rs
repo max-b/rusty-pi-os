@@ -172,10 +172,6 @@ pub fn shell(prefix: &str) {
     let mut buffer = StackVec::new(&mut raw_buffer);
     let parsed_cmd: [&str; 64] = [""; 64];
 
-    SCREEN.lock().clear();
-    SCREEN.lock().draw_string_scale(&"WELCOME TO MaxOS,5", 5);
-    SCREEN.lock().draw_char_scale(0x0d, 5);
-
     let mut finished = false;
     while !finished {
         kprint!("{}", prefix);

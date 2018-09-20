@@ -33,6 +33,7 @@ pub mod process;
 pub mod vm;
 
 use pi::console::kprintln;
+use pi::screen::SCREEN;
 use pi::raccoon::RACCOON_STRING;
 use pi::timer;
 use shell::shell;
@@ -75,14 +76,34 @@ pub unsafe extern "C" fn kmain() {
     kprintln!("allocated vec:");
     kprintln!("{:x?}", v);
 
+    SCREEN.lock().clear();
+    SCREEN.lock().draw_string_scale(&"WELCOME TO MaxOS,5", 5);
+    SCREEN.lock().draw_char_scale(0x0d, 5);
+
     SCHEDULER.start();
 }
 
 #[no_mangle]
 pub extern fn start_shell() {
-    shell("!>>> ");
-    unsafe { asm!("brk 1" :::: "volatile"); }
-    unsafe { asm!("brk 2" :::: "volatile"); }
-    unsafe { asm!("brk 3" :::: "volatile"); }
-    loop { shell(">>> "); }
+    // shell("!>>> ");
+    // unsafe { asm!("brk 1" :::: "volatile"); }
+    // unsafe { asm!("brk 2" :::: "volatile"); }
+    // unsafe { asm!("brk 3" :::: "volatile"); }
+    loop { shell("1 >>> "); }
+}
+
+#[no_mangle]
+pub extern fn start_shell_2() {
+    loop { shell("2 >>> "); }
+}
+
+
+#[no_mangle]
+pub extern fn print_junk_1() {
+    let mut counter = 0;
+    loop {
+        counter += 1;
+        kprintln!("counter = {}", counter);
+        timer::spin_sleep_ms(1000);
+    }
 }

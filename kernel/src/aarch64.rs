@@ -51,3 +51,11 @@ pub fn nop() {
         asm!("nop" :::: "volatile");
     }
 }
+
+/// Wait for interrupt
+/// puts cpu into low power mode until next interrupt
+pub fn wfi() {
+    unsafe {
+        asm!("wfi" :::: "volatile");
+    }
+}

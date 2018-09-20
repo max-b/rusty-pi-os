@@ -1,12 +1,14 @@
 use std::collections::VecDeque;
+use std::mem;
 
 use pi::mutex::Mutex;
 use pi::console::kprintln;
 use pi::interrupt;
 use pi::timer;
+use aarch64;
 use process::{Process, State, Id};
 use traps::TrapFrame;
-use start_shell;
+use {start_shell, start_shell_2, print_junk_1};
 
 /// The `tick` time.
 // FIXME: When you're ready, change this to something more reasonable.
@@ -41,6 +43,7 @@ impl GlobalScheduler {
     /// using timer interrupt based preemptive scheduling. This method should
     /// not return under normal conditions.
     pub fn start(&self) {
+
         let mut interrupt_controller = interrupt::Controller::new();
         interrupt_controller.enable(interrupt::Interrupt::Timer1);
 
@@ -48,19 +51,37 @@ impl GlobalScheduler {
 
         match Process::new() {
             Some(mut start_process) => {
+                let mut new_scheduler = Scheduler::new();
+
                 start_process.trap_frame.elr = start_shell as *const u64 as u64;
                 start_process.trap_frame.sp = start_process.stack.top().as_u64();
-
-                start_process.trap_frame.tpidr = 0xcafebabe;
 
                 // All interrupts unmasked; el0; and aarch64
                 start_process.trap_frame.spsr = 0x00;
 
-                kprintln!("start_process = {:#x?}", start_process);
+                let trap_frame_address = (&(*start_process.trap_frame)) as *const TrapFrame as *const u64 as u64;
+
+                kprintln!("start_process = {:#x?}", &start_process);
+
+                new_scheduler.add(start_process);
+
+                let mut process2 = Process::new().unwrap();
+                process2.trap_frame.elr = start_shell_2 as *const u64 as u64;
+                process2.trap_frame.sp = process2.stack.top().as_u64();
+
+                new_scheduler.add(process2);
+
+                let mut process3 = Process::new().unwrap();
+                process3.trap_frame.elr = print_junk_1 as *const u64 as u64;
+                process3.trap_frame.sp = process3.stack.top().as_u64();
+
+                new_scheduler.add(process3);
+
+                *self.0.lock() = Some(new_scheduler);
 
                 unsafe {
                     asm!("mov sp, $0"
-                         :: "r"(&(*start_process.trap_frame))
+                         :: "r"(trap_frame_address)
                          :: "volatile");
 
                     asm!("bl context_restore
@@ -81,14 +102,18 @@ impl GlobalScheduler {
 #[derive(Debug)]
 struct Scheduler {
     processes: VecDeque<Process>,
-    current: Option<Id>,
+    current: Option<Process>,
     last_id: Option<Id>,
 }
 
 impl Scheduler {
     /// Returns a new `Scheduler` with an empty queue.
     fn new() -> Scheduler {
-        unimplemented!("Scheduler::new()")
+        Scheduler {
+            processes: VecDeque::new(),
+            current: None,
+            last_id: None
+        }
     }
 
     /// Adds a process to the scheduler's queue and returns that process's ID if
@@ -100,7 +125,23 @@ impl Scheduler {
     /// It is the caller's responsibility to ensure that the first time `switch`
     /// is called, that process is executing on the CPU.
     fn add(&mut self, mut process: Process) -> Option<Id> {
-        unimplemented!("Scheduler::add()")
+        let is_first_process = self.last_id.is_none();
+
+        let new_id = match self.last_id {
+            Some(id) => id.wrapping_add(1),
+            None => 0
+        };
+
+        process.trap_frame.tpidr = new_id;
+        self.last_id = Some(new_id);
+
+        if is_first_process {
+            self.current = Some(process);
+        } else {
+            self.processes.push_back(process);
+        }
+
+        Some(new_id)
     }
 
     /// Sets the current process's state to `new_state`, finds the next process
@@ -112,6 +153,34 @@ impl Scheduler {
     /// This method blocks until there is a process to switch to, conserving
     /// energy as much as possible in the interim.
     fn switch(&mut self, new_state: State, tf: &mut TrapFrame) -> Option<Id> {
-        unimplemented!("Scheduler::switch()")
+        let mut current_replacement = None;
+
+        let mut owned_process = mem::replace(&mut self.current, current_replacement);
+
+        if let Some(mut current_process) = owned_process {
+            current_process.state = new_state;
+            *(current_process.trap_frame) = *tf;
+            self.processes.push_back(current_process);
+        }
+
+        let ready_index = self.processes.iter_mut().position(|p| p.is_ready());
+
+        match ready_index {
+            Some(i) => {
+                let mut p = self.processes.remove(i).expect("processes index out of range");
+                *tf = *(p.trap_frame);
+                p.state = State::Running;
+
+                self.current = Some(p);
+                return Some(tf.tpidr);
+            },
+            None => {
+                kprintln!("can't find ready, wfi-ing now...");
+                kprintln!("self: {:#x?}", self);
+
+                aarch64::wfi();
+                return None;
+            }
+        }
     }
 }
