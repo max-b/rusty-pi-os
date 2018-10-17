@@ -8,11 +8,10 @@ use pi::timer;
 use aarch64;
 use process::{Process, State, Id};
 use traps::TrapFrame;
-use {start_shell, start_shell_2, print_junk_1};
+use start_shell;
 
-/// The `tick` time.
-// FIXME: When you're ready, change this to something more reasonable.
-pub const TICK: u32 = 2 * 1000 * 1000;
+/// The `tick` time. Currently set to 10ms
+pub const TICK: u32 = 10 * 1000;
 
 /// Process scheduler for the entire machine.
 #[derive(Debug)]
@@ -64,18 +63,6 @@ impl GlobalScheduler {
                 kprintln!("start_process = {:#x?}", &start_process);
 
                 new_scheduler.add(start_process);
-
-                let mut process2 = Process::new().unwrap();
-                process2.trap_frame.elr = start_shell_2 as *const u64 as u64;
-                process2.trap_frame.sp = process2.stack.top().as_u64();
-
-                new_scheduler.add(process2);
-
-                let mut process3 = Process::new().unwrap();
-                process3.trap_frame.elr = print_junk_1 as *const u64 as u64;
-                process3.trap_frame.sp = process3.stack.top().as_u64();
-
-                new_scheduler.add(process3);
 
                 *self.0.lock() = Some(new_scheduler);
 
@@ -175,9 +162,6 @@ impl Scheduler {
                 return Some(tf.tpidr);
             },
             None => {
-                kprintln!("can't find ready, wfi-ing now...");
-                kprintln!("self: {:#x?}", self);
-
                 aarch64::wfi();
                 return None;
             }

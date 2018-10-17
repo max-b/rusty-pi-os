@@ -27,6 +27,7 @@ pub mod draw;
 pub mod fs;
 pub mod lang_items;
 pub mod shell;
+pub mod syscalls;
 pub mod traps;
 pub mod aarch64;
 pub mod process;

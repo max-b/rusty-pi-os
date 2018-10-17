@@ -3,7 +3,7 @@ mod trap_frame;
 mod syndrome;
 mod syscall;
 
-use pi::interrupt::{Controller, Interrupt};
+use pi::interrupt::{Controller};
 
 use shell::shell;
 
@@ -54,14 +54,25 @@ pub extern fn handle_exception(info: Info, esr: u32, tf: &mut TrapFrame) {
             kprintln!("syndrome = {:#x?}", syndrome);
             kprintln!("tf: {:#x?}", tf);
 
-            if let Syndrome::Brk(break_num) = syndrome {
-                shell(&format!("{} $!> ", break_num));
-                tf.elr = tf.elr + 0x04;
-                return;
-            } else if let Syndrome::Breakpoint = syndrome {
-                shell("$!> ");
-                tf.elr = tf.elr + 0x04; // TODO: same?
-                return;
+            match syndrome {
+                Syndrome::Brk(break_num) => {
+                    shell(&format!("{} $!> ", break_num));
+                    tf.elr = tf.elr + 0x04;
+                    return;
+                },
+                Syndrome::Breakpoint => {
+                    shell("$!> ");
+                    tf.elr = tf.elr + 0x04; // TODO: same?
+                    return;
+                },
+                Syndrome::Svc(exception_num) => {
+                    kprintln!("svc exception num: {}", exception_num);
+                    handle_syscall(exception_num, tf);
+                    return;
+                },
+                _ => {
+                    unimplemented!("syndrome")
+                }
             }
         },
         Kind::Irq => {

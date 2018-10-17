@@ -1,4 +1,5 @@
 use draw::draw_loop;
+use syscalls::sleep;
 use fat32::traits::{self, Dir, Entry};
 use fs::FileSystem;
 use pi::common::{
@@ -139,6 +140,13 @@ impl<'a> Command<'a> {
                         .lock()
                         .draw_char_scale(0x0d, scale.parse::<usize>().unwrap_or(1));
                 }
+            }
+            "sleep" => {
+                let mut iter = self.args.iter();
+                iter.next(); // skip over path
+                let ms: u32 = iter.next().unwrap().parse().unwrap();
+
+                sleep(ms);
             }
             "break" => unsafe {
                 asm!("brk 2" :::: "volatile");
